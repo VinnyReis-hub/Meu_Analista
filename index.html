@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analisador de Reuniões — IA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:        #1a3a4a;
+      --brand-mid:    #2d6a8a;
+      --brand-light:  #e8f4f8;
+      --brand-border: #b5d4f4;
+      --accent:       #c17d3e;
+      --accent-light: #fdf3e8;
+      --bg:           #f7f6f2;
+      --surface:      #ffffff;
+      --surface2:     #f2f1ed;
+      --border:       rgba(0,0,0,0.10);
+      --border-mid:   rgba(0,0,0,0.18);
+      --text:         #1a1a18;
+      --text2:        #666560;
+      --text3:        #999895;
+      --radius-sm:    8px;
+      --radius-md:    12px;
+      --radius-lg:    16px;
+      --shadow-sm:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md:    0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:       #141412;
+        --surface:  #1e1e1b;
+        --surface2: #252522;
+        --border:   rgba(255,255,255,0.09);
+        --border-mid: rgba(255,255,255,0.16);
+        --text:     #f0ede8;
+        --text2:    #9a9790;
+        --text3:    #666460;
+        --brand-light: #0d2330;
+        --brand-border: #1d4060;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+        --shadow-md: 0 4px 16px rgba(0,0,0,0.35);
+      }
+    }
+
+    html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .logo-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: var(--brand-light);
+      border: 0.5px solid var(--brand-border);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--brand-mid);
+      margin-bottom: 1rem;
+      letter-spacing: 0.3px;
+    }
+
+    .logo-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--brand-mid);
+    }
+
+    h1 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: clamp(28px, 5vw, 38px);
+      font-weight: 400;
+      color: var(--text);
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--brand-mid);
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--text2);
+      font-weight: 300;
+      line-height: 1.5;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── API Key banner ── */
+    .api-banner {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .api-banner-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .api-banner-body { flex: 1; }
+
+    .api-banner-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .api-banner-desc {
+      font-size: 12px;
+      color: var(--text2);
+    }
+
+    .api-banner-desc a {
+      color: var(--brand-mid);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .api-key-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .api-key-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 0.5px solid var(--border-mid);
+      border-radius: var(--radius-sm);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: 'DM Sans', monospace;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .api-key-input:focus { border-color: var(--brand-mid); }
+    .api-key-input::placeholder { color: var(--text3); }
+
+    .api-key-save {
+      padding: 8px 16px;
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    .api-key-save:hover { background: var(--brand-mid); }
+
+    .api-key-status {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .api-key-status.ok {
+      background: #eaf3de;
+      color: #3b6d11;
+    }
+
+    .api-key-status.missing {
+      background: #faeeda;
+      color: #854f0b;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px 24px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1.25rem;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    /* ── Mode selector ── */
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (max-width: 480px) {
+      .mode-grid { grid-template-columns: 1fr; }
+    }
+
+    .mode-card {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.18s;
+      background: var(--surface);
+      position: relative;
+      user-select: none;
+    }
+
+    .mode-card:hover {
+      border-color: var(--border-mid);
+      background: var(--surface2);
+    }
+
+    .mode-card.active {
+      border-color: var(--brand-mid);
+      background: var(--brand-light);
+    }
+
+    .mode-check {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border-mid);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      color: transparent;
+      transition: all 0.15s;
+    }
+
+    .mode-card.active .mode-check {
+      background: var(--brand-mid);
+      border-color: var(--brand-mid);
+      color: white;
+    }
+
+    .mode-icon { font-size: 22px; margin-bottom: 8px; }
+
+    .mode-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .mode-desc {
+      font-size: 12px;
+      color: var(--text2);
+      line-height: 1.45;
+    }
+
+    /* ── Textarea ── */
+    .textarea-wrap { position: relative; }
+
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      max-height: 400px;
+      padding: 14px;
+      border: 0.5px solid var(--border-mid);
+      border-radius: var(--radius-md);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      line-height: 1.65;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    textarea:focus { border-color: var(--brand-mid); }
+    textarea::placeholder { color: var(--text3); }
+
+    .char-count {
+      position: absolute;
+      bottom: 10px; right: 12px;
+      font-size: 11px;
+      color: var(--text3);
+      background: var(--surface2);
+      padding: 2px 7px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    .char-count.warn { color: var(--accent); }
+
+    /* ── Hint bar ── */
+    .hint-bar {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text2);
+      line-height: 1.5;
+    }
+
+    .hint-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--brand-mid);
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    /* ── Button ── */
+    .run-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.2px;
+      margin-top: 1.25rem;
+    }
+
+    .run-btn:hover:not(:disabled) { background: var(--brand-mid); }
+    .run-btn:active:not(:disabled) { transform: scale(0.99); }
+    .run-btn:disabled {
+      background: var(--surface2);
+      color: var(--text3);
+      cursor: not-allowed;
+    }
+
+    /* ── Error ── */
+    .error-bar {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 14px;
+      background: #fcebeb;
+      border: 0.5px solid #f7c1c1;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: #a32d2d;
+    }
+
+    .error-bar.visible { display: block; }
+
+    /* ── Loading ── */
+    .loading-screen {
+      display: none;
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .loading-screen.visible { display: block; }
+
+    .spinner {
+      width: 40px; height: 40px;
+      border: 2.5px solid var(--border-mid);
+      border-top-color: var(--brand-mid);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 18px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .loading-sub {
+      font-size: 13px;
+      color: var(--text2);
+    }
+
+    /* ── Result ── */
+    .result-screen { display: none; }
+    .result-screen.visible { display: block; }
+
+    .result-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .result-meta { display: flex; flex-direction: column; gap: 6px; }
+
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: var(--brand-light);
+      border: 0.5px solid var(--brand-border);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--brand-mid);
+    }
+
+    .token-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .token-pill {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      color: var(--text2);
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      padding: 7px 14px;
+      border: 0.5px solid var(--border-mid);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .action-btn:hover { background: var(--surface2); border-color: var(--border-mid); }
+
+    .result-content {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      box-shadow: var(--shadow-sm);
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text);
+    }
+
+    @media (max-width: 480px) {
+      .result-content { padding: 18px 16px; }
+    }
+
+    .result-content h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--text);
+      margin: 1.8rem 0 0.6rem;
+      padding-bottom: 8px;
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    .result-content h2:first-child { margin-top: 0; }
+
+    .result-content h3 {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      margin: 1.2rem 0 0.4rem;
+    }
+
+    .result-content p { margin-bottom: 0.6rem; }
+
+    .result-content ul, .result-content ol {
+      margin: 0.4rem 0 0.7rem 1.4rem;
+    }
+
+    .result-content li { margin-bottom: 0.3rem; }
+    .result-content strong { font-weight: 500; }
+    .result-content em { color: var(--text2); font-style: italic; }
+
+    .result-content code {
+      font-family: monospace;
+      font-size: 12.5px;
+      background: var(--surface2);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .result-content hr {
+      border: none;
+      border-top: 0.5px solid var(--border);
+      margin: 1.2rem 0;
+    }
+
+    .reset-link {
+      display: block;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text2);
+      cursor: pointer;
+      margin-top: 1.5rem;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      background: none;
+      border: none;
+      font-family: inherit;
+    }
+
+    .reset-link:hover { color: var(--text); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text3);
+      margin-top: 3rem;
+    }
+
+    footer a { color: var(--text2); text-underline-offset: 2px; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="logo-pill">
+      <div class="logo-dot"></div>
+      Powered by Claude AI
+    </div>
+    <h1>Analisador de <em>Reuniões</em></h1>
+    <p class="subtitle">Transforme transcrições longas em documentação estruturada — atas e especificações de requisitos em segundos.</p>
+  </header>
+
+  <!-- API Key -->
+  <div class="api-banner" id="api-banner">
+    <div class="api-banner-icon">🔑</div>
+    <div class="api-banner-body">
+      <div class="api-banner-title">Chave de API da Anthropic</div>
+      <div class="api-banner-desc">
+        Necessária para processar as transcrições. Obtenha a sua em
+        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.
+        A chave fica salva apenas no seu navegador (localStorage).
+      </div>
+      <div class="api-key-row">
+        <input
+          type="password"
+          class="api-key-input"
+          id="api-key-input"
+          placeholder="sk-ant-api03-..."
+          autocomplete="off"
+        />
+        <button class="api-key-save" onclick="saveKey()">Salvar</button>
+        <span class="api-key-status missing" id="key-status">Não configurada</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input section -->
+  <div id="input-section">
+
+    <!-- Mode -->
+    <div class="card">
+      <div class="section-label">1 — Tipo de documento</div>
+      <div class="mode-grid">
+        <div class="mode-card active" id="card-ata" onclick="selectMode('ata')">
+          <div class="mode-check" id="check-ata">✓</div>
+          <div class="mode-icon">📋</div>
+          <div class="mode-title">Ata de Reunião</div>
+          <div class="mode-desc">Data, participantes, pauta, resumo por item e próximas providências</div>
+        </div>
+        <div class="mode-card" id="card-req" onclick="selectMode('req')">
+          <div class="mode-check" id="check-req"></div>
+          <div class="mode-icon">📄</div>
+          <div class="mode-title">Especificação de Requisitos</div>
+          <div class="mode-desc">Objetivo, RF, RNF, atores, cenário To Be e dependências críticas</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transcript -->
+    <div class="card">
+      <div class="section-label">2 — Transcrição da reunião</div>
+      <div class="textarea-wrap">
+        <textarea
+          id="transcript"
+          placeholder="Cole aqui a transcrição completa da reunião...
+
+Transcrições de 1h a 1h30 são suportadas sem perda de conteúdo. O modelo processa o texto integralmente antes de gerar o documento."
+          oninput="updateCount(this)"
+        ></textarea>
+        <span class="char-count" id="char-count">0 caracteres</span>
+      </div>
+      <div class="hint-bar">
+        <div class="hint-dot"></div>
+        <span>Transcrições longas são processadas completamente — o modelo suporta até ~200 mil tokens de entrada, equivalente a várias horas de reunião.</span>
+      </div>
+    </div>
+
+    <button class="run-btn" id="run-btn" onclick="runAnalysis()">
+      Analisar transcrição →
+    </button>
+    <div class="error-bar" id="error-bar"></div>
+
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-screen" id="loading-screen">
+    <div class="spinner"></div>
+    <div class="loading-title" id="loading-title">Analisando a transcrição...</div>
+    <div class="loading-sub">Reuniões longas podem levar 30–60 segundos</div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-screen" id="result-screen">
+    <div class="result-top">
+      <div class="result-meta">
+        <div class="result-badge" id="result-badge">📋 Ata de Reunião</div>
+        <div class="token-row" id="token-row"></div>
+      </div>
+      <div class="result-actions">
+        <button class="action-btn" onclick="copyResult()">Copiar Markdown</button>
+        <button class="action-btn" onclick="downloadResult()">Baixar .md</button>
+      </div>
+    </div>
+    <div class="result-content" id="result-content"></div>
+    <button class="reset-link" onclick="resetApp()">← Nova análise</button>
+  </div>
+
+  <footer>
+    Analisador de Reuniões &mdash; construído com <a href="https://anthropic.com" target="_blank">Claude API</a>
+  </footer>
+
+</div>
+
+<script>
+/* ── Prompts ── */
+const PROMPT_ATA = `Persona
+Você é um analista de negócio sênior com anos de experiência em analisar reuniões de levantamento de requisitos de software e escrever documentos técnicos de negócios e requisitos. Você possui profundo conhecimento em metodologias ágeis, Design Thinking, técnicas de facilitação de workshops e escrita de documentos. Sua expertise inclui a capacidade de identificar insights valiosos em conversas não estruturadas e transformá-los em documentação clara e acionável que serve como base sólida para o desenvolvimento de produtos digitais e confecção de atas de reuniões.
+
+Contexto
+A seguir está a transcrição completa de uma reunião de levantamento de requisitos. O objetivo da reunião era definir as funcionalidades para um novo sistema, aplicando princípios de Design Thinking para garantir que a solução seja centrada no usuário e gere valor real para o negócio. Esta reunião representa a fase de Descoberta do processo de design, onde stakeholders, usuários e equipe técnica colaboraram para entender problemas, necessidades e oportunidades.
+
+Tarefa
+Sua tarefa é ler a(s) transcrição(ões) e criar um retorno com base nos itens a seguir:
+1. Data e hora da reunião: Indicar a data e hora em que a agenda foi realizada
+2. Participantes: Listar quais foram os participantes
+3. Itens de pauta: Listar os itens de pauta abordados na reunião
+4. Resumo das interações por item de pauta: Criar um breve resumo dos pontos chaves conversados, registrando os envolvidos e organizando por itens de pauta
+5. Próximas providências: Listar as providências que ficaram acordadas durante as agendas
+
+Restrições
+• Concentre-se exclusivamente em informações relevantes para a confecção da ata de reunião
+• Ignore cumprimentos, conversas casuais e qualquer conteúdo não relacionado ao projeto
+• Seja conciso e objetivo, mas não omita nuances importantes
+• Mantenha a linguagem técnica quando necessário, mas torne-a acessível
+• Identifique padrões e conexões entre diferentes pontos discutidos
+
+Formato de Saída
+Produza um documento Markdown estruturado com os seguintes cabeçalhos de nível 2 (##):
+
+Estrutura Obrigatória:
+• ## 1. DATA E HORA: Retorne a data da agenda e sua hora de início e término
+• ## 2. PARTICIPANTES: Liste os participantes, enumerando eles sequencialmente
+• ## 3. ITENS DE PAUTA: Liste os itens de pauta da agenda e enumere-os
+• ## 4. RESUMO DAS INTERAÇÕES POR ITEM DE PAUTA: Listar, por itens de pauta, um resumo das interações e pontos relevantes discutidos, associado ao tópico e enumerados de acordo com o item 3
+• ## 5. PRÓXIMAS PROVIDÊNCIAS: Listar as providências que ficaram acordadas nas agendas
+
+Instruções Específicas para Design Thinking
+• Empatia: Capture as emoções e frustrações dos usuários mencionadas
+• Definição: Identifique problemas claramente articulados
+• Ideação: Registre soluções e alternativas propostas
+• Prototipagem: Note qualquer menção a testes, validações ou experimentos
+• Teste: Capture feedback de usuários ou validações mencionadas
+
+O resumo deve identificar as partes envolvidas na interação e a interação de forma resumida.`;
+
+const PROMPT_REQ = `Persona
+Você é um analista de negócio sênior com anos de experiência em analisar reuniões de levantamento de requisitos de software e escrever documentos técnicos de negócios e requisitos. Você possui profundo conhecimento em metodologias ágeis, Design Thinking, técnicas de facilitação de workshops e escrita de documentos. Sua expertise inclui a capacidade de identificar insights valiosos em conversas não estruturadas e transformá-los em documentação clara e acionável que serve como base sólida para o desenvolvimento de produtos digitais e confecção de atas de reuniões.
+
+Contexto
+A seguir está a transcrição completa de uma reunião de levantamento de requisitos. O objetivo da reunião era definir as funcionalidades para um novo sistema, aplicando princípios de Design Thinking para garantir que a solução seja centrada no usuário e gere valor real para o negócio. Esta reunião representa a fase de Descoberta do processo de design, onde stakeholders, usuários e equipe técnica colaboraram para entender problemas, necessidades e oportunidades.
+
+Tarefa
+Sua tarefa é ler a(s) transcrição(ões) e criar um retorno com base nos itens a seguir:
+1. Extrair da transcrição o objetivo do projeto
+2. Criar um resumo da demanda
+3. Criar uma descrição da demanda
+4. Cenário proposto (To be)
+5. Requisitos funcionais (RF)
+6. Requisitos não funcionais (RNF)
+7. Considerações finais
+8. Dependências críticas
+
+Restrições
+• Concentre-se exclusivamente em informações relevantes para a confecção da especificação de requisitos.
+• Ignore cumprimentos, conversas casuais e qualquer conteúdo não relacionado ao projeto
+• Seja conciso e objetivo, mas não omita nuances importantes
+• Mantenha a linguagem técnica quando necessário, mas torne-a acessível
+• Identifique padrões e conexões entre diferentes pontos discutidos
+
+Formato de Saída
+Produza um documento Markdown estruturado com os seguintes cabeçalhos de nível 2 (##):
+
+Estrutura Obrigatória:
+• ## 1. OBJETIVO: Retorne o objetivo do projeto
+• ## 2. NUMERO DA OS: Retorne o número da OS (se mencionado; caso contrário: "A definir")
+• ## 3. ANALISTA DE NEGÓCIOS: Retorne o nome do analista de Negócio da Ibrowse (se mencionado; caso contrário: "A definir")
+• ## 4. AREA DEMANDANTE: Retorne a área do cliente que solicitou a demanda
+• ## 5. RESUMO DA DEMANDA: Retorne um resumo da ação a ser tomada para solução do problema do cliente
+• ## 6. ATOR(ES) ENVOLVIDO(S): Retorne quem são os envolvidos na melhoria, que fará uso da solução
+• ## 7. DESCRIÇÃO DA DEMANDA: Descrição detalhada do problema e contexto
+• ## 8. CENÁRIO PROPOSTO (TO BE): Como o sistema deverá funcionar após a implementação
+• ## 9. REQUISITOS FUNCIONAIS (RF): Liste todos os requisitos funcionais identificados, numerados como RF01, RF02...
+• ## 10. REQUISITOS NÃO FUNCIONAIS (RNF): Liste os requisitos não funcionais, numerados como RNF01, RNF02...
+• ## 11. CONSIDERAÇÕES FINAIS: Pontos de atenção, riscos e observações relevantes
+• ## 12. DEPENDÊNCIAS CRÍTICAS: Liste as dependências críticas identificadas
+
+Instruções Específicas para Design Thinking
+• Empatia: Capture as emoções e frustrações dos usuários mencionadas
+• Definição: Identifique problemas claramente articulados
+• Ideação: Registre soluções e alternativas propostas
+• Prototipagem: Note qualquer menção a testes, validações ou experimentos
+• Teste: Capture feedback de usuários ou validações mencionadas
+
+O resumo deve identificar as partes envolvidas na interação e a interação de forma resumida.`;
+
+/* ── State ── */
+let currentMode = 'ata';
+let rawMarkdown  = '';
+
+/* ── API Key ── */
+function loadKey() {
+  const k = localStorage.getItem('anthropic_api_key') || '';
+  if (k) {
+    document.getElementById('api-key-input').value = k;
+    setKeyStatus(true);
+  }
+}
+
+function saveKey() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (!k) { alert('Digite a chave antes de salvar.'); return; }
+  localStorage.setItem('anthropic_api_key', k);
+  setKeyStatus(true);
+}
+
+function setKeyStatus(ok) {
+  const el = document.getElementById('key-status');
+  el.textContent = ok ? 'Configurada ✓' : 'Não configurada';
+  el.className = 'api-key-status ' + (ok ? 'ok' : 'missing');
+}
+
+function getKey() {
+  return (document.getElementById('api-key-input').value.trim() ||
+          localStorage.getItem('anthropic_api_key') || '');
+}
+
+/* ── Mode ── */
+function selectMode(mode) {
+  currentMode = mode;
+  ['ata','req'].forEach(m => {
+    document.getElementById('card-'  + m).classList.toggle('active', m === mode);
+    document.getElementById('check-' + m).textContent = m === mode ? '✓' : '';
+  });
+}
+
+/* ── Char counter ── */
+function updateCount(el) {
+  const n = el.value.length;
+  const out = document.getElementById('char-count');
+  out.textContent = n.toLocaleString('pt-BR') + ' caracteres';
+  out.className   = 'char-count' + (n > 80000 ? ' warn' : '');
+}
+
+/* ── Helpers ── */
+function show(id)  { document.getElementById(id).style.display = 'block'; }
+function hide(id)  { document.getElementById(id).style.display = 'none';  }
+function addCls(id, c)  { document.getElementById(id).classList.add(c); }
+function remCls(id, c)  { document.getElementById(id).classList.remove(c); }
+function showErr(msg) {
+  const el = document.getElementById('error-bar');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+function hideErr() { document.getElementById('error-bar').classList.remove('visible'); }
+
+function renderMd(md) {
+  if (typeof marked !== 'undefined') {
+    try { return marked.parse(md); } catch(e) {}
+  }
+  return md
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^[-•] (.+)$/gm,'<li>$1</li>')
+    .replace(/^(\d+)\. (.+)$/gm,'<li>$2</li>')
+    .replace(/\n/g,'<br>');
+}
+
+/* ── Loading messages ── */
+const loadingMsgs = [
+  'Lendo a transcrição...',
+  'Identificando participantes e pauta...',
+  'Extraindo pontos-chave...',
+  'Estruturando o documento...',
+  'Revisando e refinando...',
+  'Finalizando a análise...'
+];
+
+/* ── Main ── */
+async function runAnalysis() {
+  const transcript = document.getElementById('transcript').value.trim();
+  const apiKey     = getKey();
+
+  if (!apiKey) {
+    showErr('Configure sua chave de API da Anthropic antes de continuar.');
+    return;
+  }
+  if (!transcript) {
+    showErr('Cole a transcrição da reunião no campo acima.');
+    return;
+  }
+  if (transcript.length < 200) {
+    showErr('A transcrição parece muito curta. Cole o texto completo da reunião.');
+    return;
+  }
+
+  hideErr();
+  hide('input-section');
+  addCls('loading-screen', 'visible');
+  remCls('result-screen', 'visible');
+
+  let ltIdx = 0;
+  const ltTimer = setInterval(() => {
+    ltIdx = (ltIdx + 1) % loadingMsgs.length;
+    document.getElementById('loading-title').textContent = loadingMsgs[ltIdx];
+  }, 4000);
+
+  const systemPrompt = currentMode === 'ata' ? PROMPT_ATA : PROMPT_REQ;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key':    apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model:      'claude-3-5-sonnet-20241022',
+        max_tokens: 8000,
+        system:     systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: '## TRANSCRIÇÃO DA REUNIÃO:\n\n' + transcript
+          }
+        ]
+      })
+    });
+
+    clearInterval(ltTimer);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = err?.error?.message || 'Erro HTTP ' + res.status;
+      throw new Error(msg);
+    }
+
+    const data = await res.json();
+    rawMarkdown  = (data.content || []).map(b => b.text || '').join('');
+
+    const inTok  = data.usage?.input_tokens  || 0;
+    const outTok = data.usage?.output_tokens || 0;
+
+    /* Badge */
+    document.getElementById('result-badge').textContent =
+      currentMode === 'ata' ? '📋 Ata de Reunião' : '📄 Especificação de Requisitos';
+
+    /* Token info */
+    document.getElementById('token-row').innerHTML =
+      `<span class="token-pill">${inTok.toLocaleString('pt-BR')} tokens entrada</span>` +
+      `<span class="token-pill">${outTok.toLocaleString('pt-BR')} tokens saída</span>`;
+
+    /* Render markdown */
+    document.getElementById('result-content').innerHTML = renderMd(rawMarkdown);
+
+    remCls('loading-screen', 'visible');
+    addCls('result-screen',  'visible');
+
+  } catch(e) {
+    clearInterval(ltTimer);
+    remCls('loading-screen', 'visible');
+    show('input-section');
+    showErr('Erro ao processar: ' + e.message);
+  }
+}
+
+/* ── Actions ── */
+function copyResult() {
+  navigator.clipboard.writeText(rawMarkdown).then(() => {
+    const btn = document.activeElement;
+    const orig = btn.textContent;
+    btn.textContent = 'Copiado!';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  });
+}
+
+function downloadResult() {
+  const fname = currentMode === 'ata' ? 'ata-reuniao.md' : 'especificacao-requisitos.md';
+  const blob  = new Blob([rawMarkdown], { type: 'text/markdown;charset=utf-8' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href = url; a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function resetApp() {
+  rawMarkdown = '';
+  remCls('result-screen', 'visible');
+  show('input-section');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── Init ── */
+loadKey();
+</script>
+</body>
+</html>
