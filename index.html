@@ -232,11 +232,11 @@
     /* ── Mode selector ── */
     .mode-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 10px;
     }
 
-    @media (max-width: 480px) {
+    @media (max-width: 600px) {
       .mode-grid { grid-template-columns: 1fr; }
     }
 
@@ -583,7 +583,7 @@
       Powered by Claude AI
     </div>
     <h1>Analisador de <em>Reuniões</em></h1>
-    <p class="subtitle">Transforme transcrições longas em documentação estruturada — atas e especificações de requisitos em segundos.</p>
+    <p class="subtitle">Transforme transcrições longas em documentação estruturada — atas, requisitos e visão de produto em segundos.</p>
   </header>
 
   <!-- API Key -->
@@ -628,6 +628,12 @@
           <div class="mode-icon">📄</div>
           <div class="mode-title">Especificação de Requisitos</div>
           <div class="mode-desc">Objetivo, RF, RNF, atores, cenário To Be e dependências críticas</div>
+        </div>
+        <div class="mode-card" id="card-visao" onclick="selectMode('visao')">
+          <div class="mode-check" id="check-visao"></div>
+          <div class="mode-icon">🗂️</div>
+          <div class="mode-title">Visão de Produto</div>
+          <div class="mode-desc">Problema, stakeholders, EAP, escopo, premissas e restrições</div>
         </div>
       </div>
     </div>
@@ -779,6 +785,74 @@ Instruções Específicas para Design Thinking
 
 O resumo deve identificar as partes envolvidas na interação e a interação de forma resumida.`;
 
+const PROMPT_VISAO = `Persona
+Você é um analista de negócio sênior com anos de experiência em analisar reuniões de levantamento de requisitos de software e escrever documentos técnicos de negócios e requisitos. Você possui profundo conhecimento em metodologias ágeis, Design Thinking, técnicas de facilitação de workshops e escrita de documentos. Sua expertise inclui a capacidade de identificar insights valiosos em conversas não estruturadas e transformá-los em documentação clara e acionável que serve como base sólida para o desenvolvimento de produtos digitais e confecção de atas de reuniões.
+
+Contexto
+A seguir está a transcrição completa de uma reunião de levantamento de requisitos. O objetivo da reunião era definir as funcionalidades para um novo sistema, aplicando princípios de Design Thinking para garantir que a solução seja centrada no usuário e gere valor real para o negócio. Esta reunião representa a fase de Descoberta do processo de design, onde stakeholders, usuários e equipe técnica colaboraram para entender problemas, necessidades e oportunidades.
+
+Tarefa
+Sua tarefa é ler a(s) transcrição(ões) e criar um retorno com base nos itens a seguir:
+1. Data e hora da reunião: Indicar a data e hora em que a agenda foi realizada
+2. Participantes: Listar quais foram os participantes
+3. Descrição do problema: Criar uma descrição do problema com base na transcrição
+4. Problemas enfrentados pelo solicitante: Explicar problemas enfrentados pelo solicitante
+5. Quais pessoas são impactadas pelo problema: Listar os usuários / pessoal / departamento ou setores afetados pelo problema
+6. Benefícios esperados
+7. Stakeholders
+8. Público-alvo
+9. Unidades envolvidas
+10. Equipe
+11. Visão do produto: Criar uma estrutura de EAP
+12. Escopo do produto
+13. Não Escopo
+14. Premissas
+15. Restrições
+
+Restrições
+• Concentre-se exclusivamente em informações relevantes para a confecção da ata de reunião
+• Ignore cumprimentos, conversas casuais e qualquer conteúdo não relacionado ao projeto
+• Seja conciso e objetivo, mas não omita nuances importantes
+• Mantenha a linguagem técnica quando necessário, mas torne-a acessível
+• Identifique padrões e conexões entre diferentes pontos discutidos
+
+Formato de Saída
+Produza um documento Markdown estruturado com os seguintes cabeçalhos de nível 2 (##):
+
+Estrutura Obrigatória:
+• ## 1. DATA E HORA: Retorne a data da agenda e sua hora de início e término
+• ## 2. PARTICIPANTES: Liste os participantes, enumerando eles sequencialmente
+• ## 3. DESCRIÇÃO DO PROBLEMA: Descreva o problema central identificado na transcrição
+• ## 4. PROBLEMAS ENFRENTADOS PELO SOLICITANTE: Explique os problemas relatados pelo solicitante
+• ## 5. PESSOAS IMPACTADAS PELO PROBLEMA: Liste os usuários, departamentos ou setores afetados
+• ## 6. BENEFÍCIOS ESPERADOS: Liste os benefícios esperados com a solução
+• ## 7. STAKEHOLDERS: Identifique os stakeholders envolvidos
+• ## 8. PÚBLICO-ALVO: Descreva o público-alvo da solução
+• ## 9. UNIDADES ENVOLVIDAS: Liste as unidades organizacionais envolvidas
+• ## 10. EQUIPE: Identifique os membros da equipe mencionados
+• ## 11. VISÃO DO PRODUTO (EAP): Crie uma Estrutura Analítica do Projeto com os principais entregáveis
+• ## 12. ESCOPO DO PRODUTO: Descreva o que está dentro do escopo da solução
+• ## 13. NÃO ESCOPO: Liste o que está fora do escopo da solução
+• ## 14. PREMISSAS: Liste as premissas identificadas
+• ## 15. RESTRIÇÕES: Liste as restrições identificadas
+
+Instruções Específicas para Design Thinking
+• Empatia: Capture as emoções e frustrações dos usuários mencionadas
+• Definição: Identifique problemas claramente articulados
+• Ideação: Registre soluções e alternativas propostas
+• Prototipagem: Note qualquer menção a testes, validações ou experimentos
+• Teste: Capture feedback de usuários ou validações mencionadas
+
+Orientações para o Próximo passo
+Sua saída será utilizada por outro analista de negócio: ele será o responsável por criar uma documentação e preencher de acordo com o resultado resgatado por você
+• Destacar claramente o problema principal que o software deve resolver
+• Identificar os usuários primários e secundários
+• Mapear as principais jornadas ou fluxos de trabalho mencionados
+• Evidenciar critérios de sucesso e definições de "pronto"
+• Apontar itens de pautas e os resumos das interações relevantes associadas a esses itens
+
+O resumo deve identificar as partes envolvidas na interação e a interação de forma resumida.`;
+
 /* ── State ── */
 let currentMode = 'ata';
 let rawMarkdown  = '';
@@ -813,7 +887,7 @@ function getKey() {
 /* ── Mode ── */
 function selectMode(mode) {
   currentMode = mode;
-  ['ata','req'].forEach(m => {
+  ['ata','req','visao'].forEach(m => {
     document.getElementById('card-'  + m).classList.toggle('active', m === mode);
     document.getElementById('check-' + m).textContent = m === mode ? '✓' : '';
   });
@@ -893,7 +967,7 @@ async function runAnalysis() {
     document.getElementById('loading-title').textContent = loadingMsgs[ltIdx];
   }, 4000);
 
-  const systemPrompt = currentMode === 'ata' ? PROMPT_ATA : PROMPT_REQ;
+  const systemPrompt = currentMode === 'ata' ? PROMPT_ATA : currentMode === 'req' ? PROMPT_REQ : PROMPT_VISAO;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -933,7 +1007,9 @@ async function runAnalysis() {
 
     /* Badge */
     document.getElementById('result-badge').textContent =
-      currentMode === 'ata' ? '📋 Ata de Reunião' : '📄 Especificação de Requisitos';
+      currentMode === 'ata' ? '📋 Ata de Reunião' :
+      currentMode === 'req' ? '📄 Especificação de Requisitos' :
+                              '🗂️ Visão de Produto';
 
     /* Token info */
     document.getElementById('token-row').innerHTML =
@@ -965,7 +1041,9 @@ function copyResult() {
 }
 
 function downloadResult() {
-  const fname = currentMode === 'ata' ? 'ata-reuniao.md' : 'especificacao-requisitos.md';
+  const fname = currentMode === 'ata' ? 'ata-reuniao.md' :
+                currentMode === 'req' ? 'especificacao-requisitos.md' :
+                                        'visao-de-produto.md';
   const blob  = new Blob([rawMarkdown], { type: 'text/markdown;charset=utf-8' });
   const url   = URL.createObjectURL(blob);
   const a     = document.createElement('a');
