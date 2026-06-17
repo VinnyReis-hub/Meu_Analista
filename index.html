@@ -232,11 +232,11 @@
     /* ── Mode selector ── */
     .mode-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 480px) {
       .mode-grid { grid-template-columns: 1fr; }
     }
 
@@ -635,6 +635,12 @@
           <div class="mode-title">Visão de Produto</div>
           <div class="mode-desc">Problema, stakeholders, EAP, escopo, premissas e restrições</div>
         </div>
+        <div class="mode-card" id="card-pop" onclick="selectMode('pop')">
+          <div class="mode-check" id="check-pop"></div>
+          <div class="mode-icon">📑</div>
+          <div class="mode-title">POP / IT</div>
+          <div class="mode-desc">Fluxo de atividades, participantes, pauta e próximas providências</div>
+        </div>
       </div>
     </div>
 
@@ -853,6 +859,59 @@ Sua saída será utilizada por outro analista de negócio: ele será o responsá
 
 O resumo deve identificar as partes envolvidas na interação e a interação de forma resumida.`;
 
+const PROMPT_POP = `Persona
+Você é um analista de negócio sênior com anos de experiência em analisar reuniões de levantamento de requisitos de software e escrever documentos técnicos de negócios e requisitos. Você possui profundo conhecimento em metodologias ágeis, Design Thinking, técnicas de facilitação de workshops e escrita de documentos. Sua expertise inclui a capacidade de identificar insights valiosos em conversas não estruturadas e transformá-los em documentação clara e acionável que serve como base sólida para o desenvolvimento de produtos digitais e confecção de atas de reuniões.
+
+Contexto
+A seguir está a transcrição completa de uma reunião de levantamento de requisitos. O objetivo da reunião era definir as funcionalidades para um novo sistema, aplicando princípios de Design Thinking para garantir que a solução seja centrada no usuário e gere valor real para o negócio. Esta reunião representa a fase de Descoberta do processo de design, onde stakeholders, usuários e equipe técnica colaboraram para entender problemas, necessidades e oportunidades.
+
+Tarefa
+Sua tarefa é ler a(s) transcrição(ões) e criar um retorno com base nos itens a seguir:
+1. Data e hora da reunião: Indicar a data e hora em que a agenda foi realizada
+2. Participantes: Listar quais foram os participantes
+3. Itens de pauta: Listar os itens de pauta abordados na reunião
+4. Explicar o fluxo de atividades do entrevistado: Descrever detalhadamente o fluxo de atividades relatado pelo entrevistado, identificando as partes envolvidas em cada etapa
+5. Criar um fluxograma dos processos: Listar os processos em tópicos com seus respectivos fluxos, representando a sequência lógica de atividades em formato textual estruturado (use setas → para indicar fluxo, e colchetes [] para indicar decisões/condições)
+6. Descrever cada atividade observando a metodologia SIPOC: Para cada processo identificado, detalhar Supplier (Fornecedor), Input (Entrada), Process (Processo), Output (Saída) e Customer (Cliente)
+7. Sugerir insights e melhorias no processo, principalmente em automações: Identificar oportunidades de melhoria, gargalos, tarefas repetitivas passíveis de automação e boas práticas aplicáveis
+
+Restrições
+• Concentre-se exclusivamente em informações relevantes para a confecção do POP/IT
+• Ignore cumprimentos, conversas casuais e qualquer conteúdo não relacionado ao projeto
+• Seja conciso e objetivo, mas não omita nuances importantes
+• Mantenha a linguagem técnica quando necessário, mas torne-a acessível
+• Identifique padrões e conexões entre diferentes pontos discutidos
+
+Formato de Saída
+Produza um documento Markdown estruturado com os seguintes cabeçalhos de nível 2 (##):
+
+Estrutura Obrigatória:
+• ## 1. DATA E HORA: Retorne a data da agenda e sua hora de início e término
+• ## 2. PARTICIPANTES: Liste os participantes, enumerando eles sequencialmente
+• ## 3. ITENS DE PAUTA: Liste os itens de pauta da agenda e enumere-os
+• ## 4. FLUXO DE ATIVIDADES DO ENTREVISTADO: Descreva detalhadamente o fluxo de atividades relatado, organizando por etapas e identificando os responsáveis por cada uma
+• ## 5. FLUXOGRAMA DOS PROCESSOS: Represente textualmente o fluxo de cada processo identificado usando a notação: Início → [Atividade 1] → [Decisão?] → Sim: [Atividade 2] / Não: [Atividade 3] → Fim
+• ## 6. DESCRIÇÃO DAS ATIVIDADES (SIPOC): Para cada processo, preencha a tabela SIPOC com: Fornecedor | Entrada | Processo | Saída | Cliente
+• ## 7. INSIGHTS E SUGESTÕES DE MELHORIA: Liste oportunidades de melhoria e automação identificadas, organizadas por prioridade (Alta / Média / Baixa)
+• ## 8. PRÓXIMAS PROVIDÊNCIAS: Listar as providências que ficaram acordadas nas agendas
+
+Instruções Específicas para Design Thinking
+• Empatia: Capture as emoções e frustrações dos usuários mencionadas
+• Definição: Identifique problemas claramente articulados
+• Ideação: Registre soluções e alternativas propostas
+• Prototipagem: Note qualquer menção a testes, validações ou experimentos
+• Teste: Capture feedback de usuários ou validações mencionadas
+
+Orientações para o Próximo passo
+Sua saída será utilizada por outro analista de negócio: ele será o responsável por criar a documentação POP/IT formal
+• Destacar claramente o problema principal que o processo deve resolver
+• Identificar os usuários primários e secundários do processo
+• Mapear as principais jornadas ou fluxos de trabalho mencionados
+• Evidenciar critérios de sucesso e definições de "pronto"
+• Destacar oportunidades de automação como prioridade
+
+O resumo deve identificar as partes envolvidas na interação e a interação de forma resumida.`;
+
 /* ── State ── */
 let currentMode = 'ata';
 let rawMarkdown  = '';
@@ -887,7 +946,7 @@ function getKey() {
 /* ── Mode ── */
 function selectMode(mode) {
   currentMode = mode;
-  ['ata','req','visao'].forEach(m => {
+  ['ata','req','visao','pop'].forEach(m => {
     document.getElementById('card-'  + m).classList.toggle('active', m === mode);
     document.getElementById('check-' + m).textContent = m === mode ? '✓' : '';
   });
@@ -967,7 +1026,9 @@ async function runAnalysis() {
     document.getElementById('loading-title').textContent = loadingMsgs[ltIdx];
   }, 4000);
 
-  const systemPrompt = currentMode === 'ata' ? PROMPT_ATA : currentMode === 'req' ? PROMPT_REQ : PROMPT_VISAO;
+  const systemPrompt = currentMode === 'ata' ? PROMPT_ATA :
+                       currentMode === 'req' ? PROMPT_REQ :
+                       currentMode === 'visao' ? PROMPT_VISAO : PROMPT_POP;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1007,9 +1068,10 @@ async function runAnalysis() {
 
     /* Badge */
     document.getElementById('result-badge').textContent =
-      currentMode === 'ata' ? '📋 Ata de Reunião' :
-      currentMode === 'req' ? '📄 Especificação de Requisitos' :
-                              '🗂️ Visão de Produto';
+      currentMode === 'ata'   ? '📋 Ata de Reunião' :
+      currentMode === 'req'   ? '📄 Especificação de Requisitos' :
+      currentMode === 'visao' ? '🗂️ Visão de Produto' :
+                                '📑 POP / IT';
 
     /* Token info */
     document.getElementById('token-row').innerHTML =
@@ -1041,9 +1103,10 @@ function copyResult() {
 }
 
 function downloadResult() {
-  const fname = currentMode === 'ata' ? 'ata-reuniao.md' :
-                currentMode === 'req' ? 'especificacao-requisitos.md' :
-                                        'visao-de-produto.md';
+  const fname = currentMode === 'ata'   ? 'ata-reuniao.md' :
+                currentMode === 'req'   ? 'especificacao-requisitos.md' :
+                currentMode === 'visao' ? 'visao-de-produto.md' :
+                                          'pop-it.md';
   const blob  = new Blob([rawMarkdown], { type: 'text/markdown;charset=utf-8' });
   const url   = URL.createObjectURL(blob);
   const a     = document.createElement('a');
