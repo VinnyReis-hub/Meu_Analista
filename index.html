@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- saved from url=(0061)file:///C:/Users/Vinicius%20Reis/Downloads/index_final_1.html -->
+<html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Analisador de Reuniões — IA</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+  <link href="./index_files/css2" rel="stylesheet">
+  <script src="./index_files/marked.min.js.download"></script>
+  <script src="./index_files/xlsx.full.min.js.download"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -562,6 +563,84 @@
 
     .reset-link:hover { color: var(--text); }
 
+    /* ── Drop zone ── */
+    .drop-zone {
+      border: 1.5px dashed var(--border-mid);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.18s;
+      background: var(--surface2);
+    }
+
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--brand-mid);
+      background: var(--brand-light);
+    }
+
+    .drop-icon { font-size: 28px; margin-bottom: 8px; }
+
+    .drop-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .drop-desc {
+      font-size: 12px;
+      color: var(--text2);
+    }
+
+    /* ── File list ── */
+    .file-list {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+    }
+
+    .file-item-icon { font-size: 16px; flex-shrink: 0; }
+
+    .file-item-name {
+      flex: 1;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-item-size { font-size: 11px; color: var(--text2); flex-shrink: 0; }
+
+    .file-item-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text2);
+      font-size: 16px;
+      padding: 0 2px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .file-item-remove:hover { color: #a32d2d; }
+
+    .file-item.loading { opacity: 0.6; }
+    .file-item.error { border-color: #f7c1c1; background: #fcebeb; }
+    .file-item.ready { border-color: #b5d4b5; }
+
     /* ── Footer ── */
     footer {
       text-align: center;
@@ -597,15 +676,9 @@
         A chave fica salva apenas no seu navegador (localStorage).
       </div>
       <div class="api-key-row">
-        <input
-          type="password"
-          class="api-key-input"
-          id="api-key-input"
-          placeholder="sk-ant-api03-..."
-          autocomplete="off"
-        />
+        <input type="password" class="api-key-input" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off">
         <button class="api-key-save" onclick="saveKey()">Salvar</button>
-        <span class="api-key-status missing" id="key-status">Não configurada</span>
+        <span class="api-key-status ok" id="key-status">Configurada ✓</span>
       </div>
     </div>
   </div>
@@ -617,25 +690,25 @@
     <div class="card">
       <div class="section-label">1 — Tipo de documento</div>
       <div class="mode-grid">
-        <div class="mode-card active" id="card-ata" onclick="selectMode('ata')">
+        <div class="mode-card active" id="card-ata" onclick="selectMode(&#39;ata&#39;)">
           <div class="mode-check" id="check-ata">✓</div>
           <div class="mode-icon">📋</div>
           <div class="mode-title">Ata de Reunião</div>
           <div class="mode-desc">Data, participantes, pauta, resumo por item e próximas providências</div>
         </div>
-        <div class="mode-card" id="card-req" onclick="selectMode('req')">
+        <div class="mode-card" id="card-req" onclick="selectMode(&#39;req&#39;)">
           <div class="mode-check" id="check-req"></div>
           <div class="mode-icon">📄</div>
           <div class="mode-title">Especificação de Requisitos</div>
           <div class="mode-desc">Objetivo, RF, RNF, atores, cenário To Be e dependências críticas</div>
         </div>
-        <div class="mode-card" id="card-visao" onclick="selectMode('visao')">
+        <div class="mode-card" id="card-visao" onclick="selectMode(&#39;visao&#39;)">
           <div class="mode-check" id="check-visao"></div>
           <div class="mode-icon">🗂️</div>
           <div class="mode-title">Visão de Produto</div>
           <div class="mode-desc">Problema, stakeholders, EAP, escopo, premissas e restrições</div>
         </div>
-        <div class="mode-card" id="card-pop" onclick="selectMode('pop')">
+        <div class="mode-card" id="card-pop" onclick="selectMode(&#39;pop&#39;)">
           <div class="mode-check" id="check-pop"></div>
           <div class="mode-icon">📑</div>
           <div class="mode-title">POP / IT</div>
@@ -648,13 +721,9 @@
     <div class="card">
       <div class="section-label">2 — Transcrição da reunião</div>
       <div class="textarea-wrap">
-        <textarea
-          id="transcript"
-          placeholder="Cole aqui a transcrição completa da reunião...
+        <textarea id="transcript" placeholder="Cole aqui a transcrição completa da reunião...
 
-Transcrições de 1h a 1h30 são suportadas sem perda de conteúdo. O modelo processa o texto integralmente antes de gerar o documento."
-          oninput="updateCount(this)"
-        ></textarea>
+Transcrições de 1h a 1h30 são suportadas sem perda de conteúdo. O modelo processa o texto integralmente antes de gerar o documento." oninput="updateCount(this)"></textarea>
         <span class="char-count" id="char-count">0 caracteres</span>
       </div>
       <div class="hint-bar">
@@ -663,8 +732,20 @@ Transcrições de 1h a 1h30 são suportadas sem perda de conteúdo. O modelo pro
       </div>
     </div>
 
+    <!-- Attachments -->
+    <div class="card">
+      <div class="section-label">3 — Anexos (opcional)</div>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById(&#39;file-input&#39;).click()">
+        <div class="drop-icon">📎</div>
+        <div class="drop-title">Clique ou arraste arquivos aqui</div>
+        <div class="drop-desc">PDF, imagens (PNG, JPG, WEBP), planilhas Excel (.xlsx, .xls) — múltiplos arquivos suportados</div>
+        <input type="file" id="file-input" multiple="" accept=".pdf,image/png,image/jpeg,image/webp,image/gif,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="handleFiles(this.files)">
+      </div>
+      <div id="file-list"></div>
+    </div>
+
     <button class="run-btn" id="run-btn" onclick="runAnalysis()">
-      Analisar transcrição →
+      Analisar transcrição e anexos →
     </button>
     <div class="error-bar" id="error-bar"></div>
 
@@ -694,7 +775,7 @@ Transcrições de 1h a 1h30 são suportadas sem perda de conteúdo. O modelo pro
   </div>
 
   <footer>
-    Analisador de Reuniões &mdash; construído com <a href="https://anthropic.com" target="_blank">Claude API</a>
+    Analisador de Reuniões — construído com <a href="https://anthropic.com/" target="_blank">Claude API</a>
   </footer>
 
 </div>
@@ -916,6 +997,119 @@ O resumo deve identificar as partes envolvidas na interação e a interação de
 let currentMode = 'ata';
 let rawMarkdown  = '';
 
+/* ── Attachments ── */
+let attachments = []; // { name, size, type, base64, mediaType }
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function fileIcon(type, name) {
+  if (type === 'application/pdf') return '📄';
+  if (type.startsWith('image/')) return '🖼️';
+  if (type.includes('spreadsheet') || type.includes('excel') ||
+      (name && (name.endsWith('.xlsx') || name.endsWith('.xls')))) return '📊';
+  return '📎';
+}
+
+function isExcel(file) {
+  return file.type.includes('spreadsheet') || file.type.includes('excel') ||
+         file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+}
+
+function excelToText(arrayBuffer, filename) {
+  const wb = XLSX.read(arrayBuffer, { type: 'array' });
+  let result = `## Planilha: ${filename}\n\n`;
+  wb.SheetNames.forEach(sheetName => {
+    const ws = wb.Sheets[sheetName];
+    const csv = XLSX.utils.sheet_to_csv(ws, { skipHidden: true });
+    if (csv.trim()) {
+      result += `### Aba: ${sheetName}\n\`\`\`\n${csv}\n\`\`\`\n\n`;
+    }
+  });
+  return result;
+}
+
+function renderFileList() {
+  const el = document.getElementById('file-list');
+  if (attachments.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="file-list">' +
+    attachments.map((f, i) => `
+      <div class="file-item ${f.ready ? 'ready' : f.error ? 'error' : 'loading'}" id="fitem-${i}">
+        <span class="file-item-icon">${fileIcon(f.type, f.name)}</span>
+        <span class="file-item-name" title="${f.name}">${f.name}</span>
+        <span class="file-item-size">${formatSize(f.size)}</span>
+        <button class="file-item-remove" onclick="removeFile(${i})" title="Remover">×</button>
+      </div>`).join('') +
+    '</div>';
+}
+
+function removeFile(idx) {
+  attachments.splice(idx, 1);
+  renderFileList();
+}
+
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    const allowed = ['application/pdf','image/png','image/jpeg','image/webp','image/gif'];
+    const excel   = isExcel(file);
+    if (!allowed.includes(file.type) && !excel) {
+      showErr('Tipo de arquivo não suportado: ' + file.name + '. Use PDF, imagens ou Excel.');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      showErr('Arquivo muito grande: ' + file.name + '. Máximo 20MB por arquivo.');
+      return;
+    }
+
+    const entry = { name: file.name, size: file.size, type: file.type, base64: null, textContent: null, isExcel: excel, ready: false, error: false };
+    attachments.push(entry);
+    renderFileList();
+
+    const reader = new FileReader();
+
+    if (excel) {
+      // Read Excel as ArrayBuffer and convert to CSV text
+      reader.onload = e => {
+        try {
+          entry.textContent = excelToText(e.target.result, file.name);
+          entry.ready = true;
+        } catch(err) {
+          entry.error = true;
+          showErr('Erro ao ler planilha: ' + file.name);
+        }
+        renderFileList();
+      };
+      reader.onerror = () => { entry.error = true; renderFileList(); };
+      reader.readAsArrayBuffer(file);
+    } else {
+      // Read PDF/image as base64
+      reader.onload = e => {
+        entry.base64 = e.target.result.split(',')[1];
+        entry.ready  = true;
+        renderFileList();
+      };
+      reader.onerror = () => { entry.error = true; renderFileList(); };
+      reader.readAsDataURL(file);
+    }
+  });
+  document.getElementById('file-input').value = '';
+}
+
+// Drag and drop
+function initDropZone() {
+  const zone = document.getElementById('drop-zone');
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+}
+
 /* ── API Key ── */
 function loadKey() {
   const k = localStorage.getItem('anthropic_api_key') || '';
@@ -1006,12 +1200,19 @@ async function runAnalysis() {
     showErr('Configure sua chave de API da Anthropic antes de continuar.');
     return;
   }
-  if (!transcript) {
-    showErr('Cole a transcrição da reunião no campo acima.');
+  if (!transcript && attachments.length === 0) {
+    showErr('Cole a transcrição da reunião ou adicione ao menos um anexo.');
     return;
   }
-  if (transcript.length < 200) {
+  if (transcript && transcript.length < 50) {
     showErr('A transcrição parece muito curta. Cole o texto completo da reunião.');
+    return;
+  }
+
+  // Check if any attachment is still loading
+  const pending = attachments.filter(f => !f.ready && !f.error);
+  if (pending.length > 0) {
+    showErr('Aguarde o carregamento dos anexos antes de continuar.');
     return;
   }
 
@@ -1030,6 +1231,45 @@ async function runAnalysis() {
                        currentMode === 'req' ? PROMPT_REQ :
                        currentMode === 'visao' ? PROMPT_VISAO : PROMPT_POP;
 
+  // Build message content array
+  const contentParts = [];
+
+  // Add transcript text if provided
+  if (transcript) {
+    contentParts.push({
+      type: 'text',
+      text: '## TRANSCRIÇÃO DA REUNIÃO:\n\n' + transcript
+    });
+  }
+
+  // Add attachments
+  const readyAttachments = attachments.filter(f => f.ready && f.base64);
+  if (readyAttachments.length > 0) {
+    if (transcript) {
+      contentParts.push({ type: 'text', text: '\n\n## ANEXOS DA REUNIÃO:\nOs arquivos abaixo foram anexados e devem ser considerados na análise junto com a transcrição.' });
+    } else {
+      contentParts.push({ type: 'text', text: '## ANEXOS DA REUNIÃO:\nAnalise os arquivos abaixo e gere o documento solicitado com base no conteúdo encontrado.' });
+    }
+
+    readyAttachments.forEach((f, i) => {
+      contentParts.push({ type: 'text', text: `\n### Anexo ${i + 1}: ${f.name}` });
+      if (f.isExcel && f.textContent) {
+        // Excel converted to text/CSV
+        contentParts.push({ type: 'text', text: f.textContent });
+      } else if (f.type === 'application/pdf') {
+        contentParts.push({
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: f.base64 }
+        });
+      } else {
+        contentParts.push({
+          type: 'image',
+          source: { type: 'base64', media_type: f.type, data: f.base64 }
+        });
+      }
+    });
+  }
+
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -1043,12 +1283,7 @@ async function runAnalysis() {
         model:      'claude-haiku-4-5-20251001',
         max_tokens: 8000,
         system:     systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: '## TRANSCRIÇÃO DA REUNIÃO:\n\n' + transcript
-          }
-        ]
+        messages: [{ role: 'user', content: contentParts }]
       })
     });
 
@@ -1119,6 +1354,8 @@ function downloadResult() {
 
 function resetApp() {
   rawMarkdown = '';
+  attachments = [];
+  renderFileList();
   remCls('result-screen', 'visible');
   show('input-section');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1126,6 +1363,8 @@ function resetApp() {
 
 /* ── Init ── */
 loadKey();
+initDropZone();
 </script>
-</body>
-</html>
+
+
+</body></html>
