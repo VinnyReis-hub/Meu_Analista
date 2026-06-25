@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<!-- saved from url=(0061)file:///C:/Users/Vinicius%20Reis/Downloads/index_final_1.html -->
-<html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Analisador de Reuniões — IA</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com/">
-  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-  <link href="./index_files/css2" rel="stylesheet">
-  <script src="./index_files/marked.min.js.download"></script>
-  <script src="./index_files/xlsx.full.min.js.download"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -641,6 +642,106 @@
     .file-item.error { border-color: #f7c1c1; background: #fcebeb; }
     .file-item.ready { border-color: #b5d4b5; }
 
+    /* ── Review report ── */
+    .review-summary {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+      padding: 16px;
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+
+    .review-summary-item {
+      flex: 1;
+      min-width: 100px;
+      text-align: center;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      border: 0.5px solid var(--border);
+      background: var(--surface);
+    }
+
+    .review-summary-count {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      font-weight: 400;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .review-summary-label { font-size: 11px; color: var(--text2); }
+
+    .review-error-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .review-error-card {
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      background: var(--surface);
+    }
+
+    .review-error-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .cat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .cat-portugues  { background: #fce8e8; color: #8b1a1a; border: 0.5px solid #f7c1c1; }
+    .cat-formatacao { background: #e8f0fc; color: #1a3a8b; border: 0.5px solid #b5c8f4; }
+    .cat-padronizacao { background: #f0fce8; color: #2a6b10; border: 0.5px solid #b5d4a0; }
+
+    .review-error-desc { font-size: 13.5px; color: var(--text); margin-bottom: 8px; }
+
+    .review-error-trecho {
+      font-family: monospace;
+      font-size: 12.5px;
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .review-error-sugestao {
+      font-size: 12.5px;
+      color: #2a6b10;
+      background: #f0fce8;
+      border: 0.5px solid #b5d4a0;
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+
+    .review-error-sugestao strong { font-weight: 500; }
+
+    .rev-file-ok {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--text);
+    }
+
     /* ── Footer ── */
     footer {
       text-align: center;
@@ -676,9 +777,15 @@
         A chave fica salva apenas no seu navegador (localStorage).
       </div>
       <div class="api-key-row">
-        <input type="password" class="api-key-input" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off">
+        <input
+          type="password"
+          class="api-key-input"
+          id="api-key-input"
+          placeholder="sk-ant-api03-..."
+          autocomplete="off"
+        />
         <button class="api-key-save" onclick="saveKey()">Salvar</button>
-        <span class="api-key-status ok" id="key-status">Configurada ✓</span>
+        <span class="api-key-status missing" id="key-status">Não configurada</span>
       </div>
     </div>
   </div>
@@ -690,40 +797,62 @@
     <div class="card">
       <div class="section-label">1 — Tipo de documento</div>
       <div class="mode-grid">
-        <div class="mode-card active" id="card-ata" onclick="selectMode(&#39;ata&#39;)">
+        <div class="mode-card active" id="card-ata" onclick="selectMode('ata')">
           <div class="mode-check" id="check-ata">✓</div>
           <div class="mode-icon">📋</div>
           <div class="mode-title">Ata de Reunião</div>
           <div class="mode-desc">Data, participantes, pauta, resumo por item e próximas providências</div>
         </div>
-        <div class="mode-card" id="card-req" onclick="selectMode(&#39;req&#39;)">
+        <div class="mode-card" id="card-req" onclick="selectMode('req')">
           <div class="mode-check" id="check-req"></div>
           <div class="mode-icon">📄</div>
           <div class="mode-title">Especificação de Requisitos</div>
           <div class="mode-desc">Objetivo, RF, RNF, atores, cenário To Be e dependências críticas</div>
         </div>
-        <div class="mode-card" id="card-visao" onclick="selectMode(&#39;visao&#39;)">
+        <div class="mode-card" id="card-visao" onclick="selectMode('visao')">
           <div class="mode-check" id="check-visao"></div>
           <div class="mode-icon">🗂️</div>
           <div class="mode-title">Visão de Produto</div>
           <div class="mode-desc">Problema, stakeholders, EAP, escopo, premissas e restrições</div>
         </div>
-        <div class="mode-card" id="card-pop" onclick="selectMode(&#39;pop&#39;)">
+        <div class="mode-card" id="card-pop" onclick="selectMode('pop')">
           <div class="mode-check" id="check-pop"></div>
           <div class="mode-icon">📑</div>
           <div class="mode-title">POP / IT</div>
           <div class="mode-desc">Fluxo de atividades, participantes, pauta e próximas providências</div>
         </div>
+        <div class="mode-card" id="card-rev" onclick="selectMode('rev')">
+          <div class="mode-check" id="check-rev"></div>
+          <div class="mode-icon">🔍</div>
+          <div class="mode-title">Revisão de Documento</div>
+          <div class="mode-desc">Erros de português, formatação e inconsistências de padronização</div>
+        </div>
       </div>
     </div>
 
+    <!-- Revisão de Documento upload (só aparece neste modo) -->
+    <div class="card" id="rev-card" style="display:none">
+      <div class="section-label">2 — Documento para revisão (.docx)</div>
+      <div class="drop-zone" id="rev-drop-zone" onclick="document.getElementById('rev-file-input').click()">
+        <div class="drop-icon">📝</div>
+        <div class="drop-title">Clique ou arraste o arquivo .docx aqui</div>
+        <div class="drop-desc">Apenas arquivos Word (.docx) são suportados neste modo</div>
+        <input type="file" id="rev-file-input" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none" onchange="handleDocxFile(this.files[0])" />
+      </div>
+      <div id="rev-file-status"></div>
+    </div>
+
     <!-- Transcript -->
-    <div class="card">
+    <div class="card" id="transcript-card">
       <div class="section-label">2 — Transcrição da reunião</div>
       <div class="textarea-wrap">
-        <textarea id="transcript" placeholder="Cole aqui a transcrição completa da reunião...
+        <textarea
+          id="transcript"
+          placeholder="Cole aqui a transcrição completa da reunião...
 
-Transcrições de 1h a 1h30 são suportadas sem perda de conteúdo. O modelo processa o texto integralmente antes de gerar o documento." oninput="updateCount(this)"></textarea>
+Transcrições de 1h a 1h30 são suportadas sem perda de conteúdo. O modelo processa o texto integralmente antes de gerar o documento."
+          oninput="updateCount(this)"
+        ></textarea>
         <span class="char-count" id="char-count">0 caracteres</span>
       </div>
       <div class="hint-bar">
@@ -733,13 +862,13 @@ Transcrições de 1h a 1h30 são suportadas sem perda de conteúdo. O modelo pro
     </div>
 
     <!-- Attachments -->
-    <div class="card">
+    <div class="card" id="attachments-card">
       <div class="section-label">3 — Anexos (opcional)</div>
-      <div class="drop-zone" id="drop-zone" onclick="document.getElementById(&#39;file-input&#39;).click()">
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
         <div class="drop-icon">📎</div>
         <div class="drop-title">Clique ou arraste arquivos aqui</div>
         <div class="drop-desc">PDF, imagens (PNG, JPG, WEBP), planilhas Excel (.xlsx, .xls) — múltiplos arquivos suportados</div>
-        <input type="file" id="file-input" multiple="" accept=".pdf,image/png,image/jpeg,image/webp,image/gif,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="handleFiles(this.files)">
+        <input type="file" id="file-input" multiple accept=".pdf,image/png,image/jpeg,image/webp,image/gif,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="handleFiles(this.files)" />
       </div>
       <div id="file-list"></div>
     </div>
@@ -775,7 +904,7 @@ Transcrições de 1h a 1h30 são suportadas sem perda de conteúdo. O modelo pro
   </div>
 
   <footer>
-    Analisador de Reuniões — construído com <a href="https://anthropic.com/" target="_blank">Claude API</a>
+    Analisador de Reuniões &mdash; construído com <a href="https://anthropic.com" target="_blank">Claude API</a>
   </footer>
 
 </div>
@@ -1110,6 +1239,93 @@ function initDropZone() {
   });
 }
 
+/* ── Docx review ── */
+let docxText = '';
+let docxFileName = '';
+
+function handleDocxFile(file) {
+  if (!file) return;
+  if (!file.name.endsWith('.docx')) {
+    showErr('Por favor, selecione um arquivo .docx válido.');
+    return;
+  }
+  docxFileName = file.name;
+  const statusEl = document.getElementById('rev-file-status');
+  statusEl.innerHTML = '<div class="rev-file-ok">⏳ Lendo o documento...</div>';
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const arrayBuffer = e.target.result;
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      docxText = result.value;
+      statusEl.innerHTML = `<div class="rev-file-ok">✅ <strong>${file.name}</strong> — ${docxText.length.toLocaleString('pt-BR')} caracteres extraídos</div>`;
+    } catch(err) {
+      statusEl.innerHTML = '<div class="rev-file-ok" style="color:#a32d2d">❌ Erro ao ler o arquivo. Certifique-se que é um .docx válido.</div>';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  document.getElementById('rev-file-input').value = '';
+}
+
+function initRevDropZone() {
+  const zone = document.getElementById('rev-drop-zone');
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) handleDocxFile(e.dataTransfer.files[0]);
+  });
+}
+
+function renderReviewReport(jsonData) {
+  const { resumo, erros } = jsonData;
+  const catLabel = { portugues: 'Português', formatacao: 'Formatação', padronizacao: 'Padronização' };
+  const catIcon  = { portugues: '🔤', formatacao: '📐', padronizacao: '🏷️' };
+
+  let html = `
+    <div class="review-summary">
+      <div class="review-summary-item">
+        <div class="review-summary-count" style="color:#8b1a1a">${resumo.portugues || 0}</div>
+        <div class="review-summary-label">🔤 Português</div>
+      </div>
+      <div class="review-summary-item">
+        <div class="review-summary-count" style="color:#1a3a8b">${resumo.formatacao || 0}</div>
+        <div class="review-summary-label">📐 Formatação</div>
+      </div>
+      <div class="review-summary-item">
+        <div class="review-summary-count" style="color:#2a6b10">${resumo.padronizacao || 0}</div>
+        <div class="review-summary-label">🏷️ Padronização</div>
+      </div>
+      <div class="review-summary-item">
+        <div class="review-summary-count">${(resumo.portugues||0)+(resumo.formatacao||0)+(resumo.padronizacao||0)}</div>
+        <div class="review-summary-label">Total de erros</div>
+      </div>
+    </div>
+    <div class="review-error-list">`;
+
+  erros.forEach(err => {
+    const cat = err.categoria || 'portugues';
+    html += `
+      <div class="review-error-card">
+        <div class="review-error-header">
+          <span class="cat-badge cat-${cat}">${catIcon[cat] || '•'} ${catLabel[cat] || cat}</span>
+        </div>
+        <div class="review-error-desc">${escHtml(err.descricao || '')}</div>
+        ${err.trecho_original ? `<div class="review-error-trecho">${escHtml(err.trecho_original)}</div>` : ''}
+        ${err.sugestao ? `<div class="review-error-sugestao"><strong>✅ Sugestão:</strong> ${escHtml(err.sugestao)}</div>` : ''}
+      </div>`;
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 /* ── API Key ── */
 function loadKey() {
   const k = localStorage.getItem('anthropic_api_key') || '';
@@ -1140,10 +1356,17 @@ function getKey() {
 /* ── Mode ── */
 function selectMode(mode) {
   currentMode = mode;
-  ['ata','req','visao','pop'].forEach(m => {
+  ['ata','req','visao','pop','rev'].forEach(m => {
     document.getElementById('card-'  + m).classList.toggle('active', m === mode);
     document.getElementById('check-' + m).textContent = m === mode ? '✓' : '';
   });
+  const isRev = mode === 'rev';
+  document.getElementById('transcript-card').style.display  = isRev ? 'none' : 'block';
+  document.getElementById('attachments-card').style.display = isRev ? 'none' : 'block';
+  document.getElementById('rev-card').style.display         = isRev ? 'block' : 'none';
+  document.getElementById('run-btn').textContent = isRev
+    ? 'Revisar documento →'
+    : 'Analisar transcrição e anexos →';
 }
 
 /* ── Char counter ── */
@@ -1198,6 +1421,80 @@ async function runAnalysis() {
 
   if (!apiKey) {
     showErr('Configure sua chave de API da Anthropic antes de continuar.');
+    return;
+  }
+
+  // Rev mode validation
+  if (currentMode === 'rev') {
+    if (!docxText) {
+      showErr('Faça o upload de um arquivo .docx antes de continuar.');
+      return;
+    }
+    hideErr();
+    hide('input-section');
+    addCls('loading-screen', 'visible');
+    remCls('result-screen', 'visible');
+
+    let ltIdx = 0;
+    const ltTimer = setInterval(() => {
+      ltIdx = (ltIdx + 1) % loadingMsgs.length;
+      document.getElementById('loading-title').textContent = loadingMsgs[ltIdx];
+    }, 4000);
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 8000,
+          system: `Você é um revisor especialista em documentos técnicos e de negócio em português do Brasil. Analise o documento enviado e retorne SOMENTE um JSON válido, sem nenhum texto antes ou depois, sem blocos de código markdown, com a seguinte estrutura: { "resumo": { "portugues": N, "formatacao": N, "padronizacao": N }, "erros": [ { "categoria": "portugues" | "formatacao" | "padronizacao", "descricao": "...", "trecho_original": "...", "sugestao": "..." } ] }. Seja preciso, não invente erros que não existam, e priorize os mais impactantes.`,
+          messages: [{ role: 'user', content: `## DOCUMENTO PARA REVISÃO: ${docxFileName}\n\n${docxText}` }]
+        })
+      });
+
+      clearInterval(ltTimer);
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error?.message || 'Erro HTTP ' + res.status);
+      }
+
+      const data = await res.json();
+      const rawText = (data.content || []).map(b => b.text || '').join('').trim();
+      rawMarkdown = rawText;
+
+      const inTok  = data.usage?.input_tokens  || 0;
+      const outTok = data.usage?.output_tokens || 0;
+
+      document.getElementById('result-badge').textContent = '🔍 Revisão de Documento';
+      document.getElementById('token-row').innerHTML =
+        `<span class="token-pill">${inTok.toLocaleString('pt-BR')} tokens entrada</span>` +
+        `<span class="token-pill">${outTok.toLocaleString('pt-BR')} tokens saída</span>`;
+
+      // Try to parse JSON and render visual report
+      try {
+        const clean = rawText.replace(/```json|```/g,'').trim();
+        const parsed = JSON.parse(clean);
+        document.getElementById('result-content').innerHTML = renderReviewReport(parsed);
+      } catch(e) {
+        document.getElementById('result-content').innerHTML = renderMd(rawText);
+      }
+
+      remCls('loading-screen', 'visible');
+      addCls('result-screen', 'visible');
+
+    } catch(e) {
+      clearInterval(ltTimer);
+      remCls('loading-screen', 'visible');
+      show('input-section');
+      showErr('Erro ao processar: ' + e.message);
+    }
     return;
   }
   if (!transcript && attachments.length === 0) {
@@ -1306,7 +1603,8 @@ async function runAnalysis() {
       currentMode === 'ata'   ? '📋 Ata de Reunião' :
       currentMode === 'req'   ? '📄 Especificação de Requisitos' :
       currentMode === 'visao' ? '🗂️ Visão de Produto' :
-                                '📑 POP / IT';
+      currentMode === 'pop'   ? '📑 POP / IT' :
+                                '🔍 Revisão de Documento';
 
     /* Token info */
     document.getElementById('token-row').innerHTML =
@@ -1341,7 +1639,8 @@ function downloadResult() {
   const fname = currentMode === 'ata'   ? 'ata-reuniao.md' :
                 currentMode === 'req'   ? 'especificacao-requisitos.md' :
                 currentMode === 'visao' ? 'visao-de-produto.md' :
-                                          'pop-it.md';
+                currentMode === 'pop'   ? 'pop-it.md' :
+                                          'revisao-documento.json';
   const blob  = new Blob([rawMarkdown], { type: 'text/markdown;charset=utf-8' });
   const url   = URL.createObjectURL(blob);
   const a     = document.createElement('a');
@@ -1353,8 +1652,11 @@ function downloadResult() {
 }
 
 function resetApp() {
-  rawMarkdown = '';
-  attachments = [];
+  rawMarkdown  = '';
+  attachments  = [];
+  docxText     = '';
+  docxFileName = '';
+  document.getElementById('rev-file-status').innerHTML = '';
   renderFileList();
   remCls('result-screen', 'visible');
   show('input-section');
@@ -1364,7 +1666,7 @@ function resetApp() {
 /* ── Init ── */
 loadKey();
 initDropZone();
+initRevDropZone();
 </script>
-
-
-</body></html>
+</body>
+</html>
