@@ -584,6 +584,13 @@ Você é um analista de negócio sênior especializado em registrar reuniões de
 Tarefa
 Leia a(s) transcrição(ões) e gere uma ata de reunião com os itens abaixo.
 
+REGRA ABSOLUTA — FIDELIDADE À TRANSCRIÇÃO
+• NUNCA invente, suponha ou deduza informações que não estejam literalmente na transcrição
+• Participantes: liste SOMENTE os nomes que aparecem explicitamente no texto fornecido. Se um nome não foi mencionado na transcrição, ele NÃO existe nesta ata
+• Data e hora: use SOMENTE o que constar na transcrição. Se não houver, escreva "Não informado"
+• Decisões e encaminhamentos: copie apenas o que foi dito; não complete, não infira
+• Se alguma informação não estiver na transcrição, escreva "Não informado" naquele campo
+
 Restrições
 • Registre apenas o que foi dito, sem expandir, interpretar ou acrescentar informações
 • Não use texto gerado ou inferido; use as palavras e decisões da reunião
@@ -593,7 +600,7 @@ Restrições
 
 Formato de Saída — Markdown com cabeçalhos ##:
 • ## 1. DATA E HORA
-• ## 2. PARTICIPANTES
+• ## 2. PARTICIPANTES (somente os citados na transcrição)
 • ## 3. ITENS DE PAUTA
 • ## 4. RESUMO DAS INTERAÇÕES POR ITEM DE PAUTA
 • ## 5. PRÓXIMAS PROVIDÊNCIAS
@@ -723,6 +730,17 @@ function toggleSidebar() {
 
 /* ── SELECT MODE ── */
 function selectMode(mode) {
+  // Limpar estado anterior ao trocar de modo para evitar contaminação de dados
+  rawMarkdown = ''; attachments = []; docxText = ''; docxFileName = '';
+  tjFormattedMd = ''; tjIsLoading = false;
+  document.getElementById('transcript').value = '';
+  document.getElementById('char-count').textContent = '0 caracteres';
+  if (document.getElementById('attach-list')) renderFileList();
+  // Voltar para tela de input caso esteja em resultado
+  remCls('result-screen','visible');
+  remCls('loading-screen','visible');
+  show('input-section');
+
   currentMode = mode;
   const cfg = MODES[mode];
 
