@@ -1,1669 +1,1447 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Analisador de Reuniões — IA</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Meu Analista — IA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --brand:        #1a3a4a;
-      --brand-mid:    #2d6a8a;
-      --brand-light:  #e8f4f8;
-      --brand-border: #b5d4f4;
-      --accent:       #c17d3e;
-      --accent-light: #fdf3e8;
-      --bg:           #f7f6f2;
-      --surface:      #ffffff;
-      --surface2:     #f2f1ed;
-      --border:       rgba(0,0,0,0.10);
-      --border-mid:   rgba(0,0,0,0.18);
-      --text:         #1a1a18;
-      --text2:        #666560;
-      --text3:        #999895;
-      --radius-sm:    8px;
-      --radius-md:    12px;
-      --radius-lg:    16px;
-      --shadow-sm:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md:    0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg:       #141412;
-        --surface:  #1e1e1b;
-        --surface2: #252522;
-        --border:   rgba(255,255,255,0.09);
-        --border-mid: rgba(255,255,255,0.16);
-        --text:     #f0ede8;
-        --text2:    #9a9790;
-        --text3:    #666460;
-        --brand-light: #0d2330;
-        --brand-border: #1d4060;
-        --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-        --shadow-md: 0 4px 16px rgba(0,0,0,0.35);
-      }
-    }
-
-    html { font-size: 16px; -webkit-font-smoothing: antialiased; }
-
-    body {
-      font-family: 'DM Sans', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 2rem 1rem 4rem;
-    }
-
-    /* ── Layout ── */
-    .container {
-      max-width: 760px;
-      margin: 0 auto;
-    }
-
-    /* ── Header ── */
-    .site-header {
-      text-align: center;
-      margin-bottom: 2.5rem;
-    }
-
-    .logo-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 14px;
-      background: var(--brand-light);
-      border: 0.5px solid var(--brand-border);
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--brand-mid);
-      margin-bottom: 1rem;
-      letter-spacing: 0.3px;
-    }
-
-    .logo-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--brand-mid);
-    }
-
-    h1 {
-      font-family: 'DM Serif Display', Georgia, serif;
-      font-size: clamp(28px, 5vw, 38px);
-      font-weight: 400;
-      color: var(--text);
-      letter-spacing: -0.5px;
-      line-height: 1.15;
-      margin-bottom: 8px;
-    }
-
-    h1 em {
-      font-style: italic;
-      color: var(--brand-mid);
-    }
-
-    .subtitle {
-      font-size: 15px;
-      color: var(--text2);
-      font-weight: 300;
-      line-height: 1.5;
-      max-width: 480px;
-      margin: 0 auto;
-    }
-
-    /* ── API Key banner ── */
-    .api-banner {
-      background: var(--surface);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 14px 18px;
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .api-banner-icon {
-      font-size: 18px;
-      flex-shrink: 0;
-    }
-
-    .api-banner-body { flex: 1; }
-
-    .api-banner-title {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 2px;
-    }
-
-    .api-banner-desc {
-      font-size: 12px;
-      color: var(--text2);
-    }
-
-    .api-banner-desc a {
-      color: var(--brand-mid);
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-
-    .api-key-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .api-key-input {
-      flex: 1;
-      padding: 8px 12px;
-      border: 0.5px solid var(--border-mid);
-      border-radius: var(--radius-sm);
-      background: var(--surface2);
-      color: var(--text);
-      font-family: 'DM Sans', monospace;
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    .api-key-input:focus { border-color: var(--brand-mid); }
-    .api-key-input::placeholder { color: var(--text3); }
-
-    .api-key-save {
-      padding: 8px 16px;
-      background: var(--brand);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-sm);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s;
-      white-space: nowrap;
-    }
-
-    .api-key-save:hover { background: var(--brand-mid); }
-
-    .api-key-status {
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-weight: 500;
-    }
-
-    .api-key-status.ok {
-      background: #eaf3de;
-      color: #3b6d11;
-    }
-
-    .api-key-status.missing {
-      background: #faeeda;
-      color: #854f0b;
-    }
-
-    /* ── Card ── */
-    .card {
-      background: var(--surface);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 22px 24px;
-      box-shadow: var(--shadow-sm);
-      margin-bottom: 1.25rem;
-    }
-
-    .section-label {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text3);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 10px;
-    }
-
-    /* ── Mode selector ── */
-    .mode-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    @media (max-width: 480px) {
-      .mode-grid { grid-template-columns: 1fr; }
-    }
-
-    .mode-card {
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 14px 16px;
-      cursor: pointer;
-      transition: all 0.18s;
-      background: var(--surface);
-      position: relative;
-      user-select: none;
-    }
-
-    .mode-card:hover {
-      border-color: var(--border-mid);
-      background: var(--surface2);
-    }
-
-    .mode-card.active {
-      border-color: var(--brand-mid);
-      background: var(--brand-light);
-    }
-
-    .mode-check {
-      position: absolute;
-      top: 10px; right: 10px;
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      border: 1.5px solid var(--border-mid);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 10px;
-      color: transparent;
-      transition: all 0.15s;
-    }
-
-    .mode-card.active .mode-check {
-      background: var(--brand-mid);
-      border-color: var(--brand-mid);
-      color: white;
-    }
-
-    .mode-icon { font-size: 22px; margin-bottom: 8px; }
-
-    .mode-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 3px;
-    }
-
-    .mode-desc {
-      font-size: 12px;
-      color: var(--text2);
-      line-height: 1.45;
-    }
-
-    /* ── Textarea ── */
-    .textarea-wrap { position: relative; }
-
-    textarea {
-      width: 100%;
-      min-height: 200px;
-      max-height: 400px;
-      padding: 14px;
-      border: 0.5px solid var(--border-mid);
-      border-radius: var(--radius-md);
-      background: var(--surface2);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      line-height: 1.65;
-      resize: vertical;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    textarea:focus { border-color: var(--brand-mid); }
-    textarea::placeholder { color: var(--text3); }
-
-    .char-count {
-      position: absolute;
-      bottom: 10px; right: 12px;
-      font-size: 11px;
-      color: var(--text3);
-      background: var(--surface2);
-      padding: 2px 7px;
-      border-radius: 4px;
-      pointer-events: none;
-    }
-
-    .char-count.warn { color: var(--accent); }
-
-    /* ── Hint bar ── */
-    .hint-bar {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 10px 14px;
-      background: var(--surface2);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-sm);
-      margin-top: 10px;
-      font-size: 12px;
-      color: var(--text2);
-      line-height: 1.5;
-    }
-
-    .hint-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--brand-mid);
-      flex-shrink: 0;
-      margin-top: 4px;
-    }
-
-    /* ── Button ── */
-    .run-btn {
-      width: 100%;
-      padding: 14px;
-      background: var(--brand);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-md);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 15px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.15s;
-      letter-spacing: 0.2px;
-      margin-top: 1.25rem;
-    }
-
-    .run-btn:hover:not(:disabled) { background: var(--brand-mid); }
-    .run-btn:active:not(:disabled) { transform: scale(0.99); }
-    .run-btn:disabled {
-      background: var(--surface2);
-      color: var(--text3);
-      cursor: not-allowed;
-    }
-
-    /* ── Error ── */
-    .error-bar {
-      display: none;
-      margin-top: 10px;
-      padding: 10px 14px;
-      background: #fcebeb;
-      border: 0.5px solid #f7c1c1;
-      border-radius: var(--radius-sm);
-      font-size: 13px;
-      color: #a32d2d;
-    }
-
-    .error-bar.visible { display: block; }
-
-    /* ── Loading ── */
-    .loading-screen {
-      display: none;
-      text-align: center;
-      padding: 4rem 2rem;
-    }
-
-    .loading-screen.visible { display: block; }
-
-    .spinner {
-      width: 40px; height: 40px;
-      border: 2.5px solid var(--border-mid);
-      border-top-color: var(--brand-mid);
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
-      margin: 0 auto 18px;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .loading-title {
-      font-family: 'DM Serif Display', serif;
-      font-size: 20px;
-      font-weight: 400;
-      color: var(--text);
-      margin-bottom: 6px;
-    }
-
-    .loading-sub {
-      font-size: 13px;
-      color: var(--text2);
-    }
-
-    /* ── Result ── */
-    .result-screen { display: none; }
-    .result-screen.visible { display: block; }
-
-    .result-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-
-    .result-meta { display: flex; flex-direction: column; gap: 6px; }
-
-    .result-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 14px;
-      background: var(--brand-light);
-      border: 0.5px solid var(--brand-border);
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--brand-mid);
-    }
-
-    .token-row {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .token-pill {
-      font-size: 11px;
-      padding: 3px 9px;
-      border-radius: 20px;
-      background: var(--surface2);
-      border: 0.5px solid var(--border);
-      color: var(--text2);
-    }
-
-    .result-actions {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .action-btn {
-      padding: 7px 14px;
-      border: 0.5px solid var(--border-mid);
-      border-radius: var(--radius-sm);
-      background: var(--surface);
-      color: var(--text);
-      font-size: 13px;
-      font-family: 'DM Sans', sans-serif;
-      cursor: pointer;
-      transition: all 0.12s;
-    }
-
-    .action-btn:hover { background: var(--surface2); border-color: var(--border-mid); }
-
-    .result-content {
-      background: var(--surface);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 24px 28px;
-      box-shadow: var(--shadow-sm);
-      font-size: 14px;
-      line-height: 1.8;
-      color: var(--text);
-    }
-
-    @media (max-width: 480px) {
-      .result-content { padding: 18px 16px; }
-    }
-
-    .result-content h2 {
-      font-family: 'DM Serif Display', serif;
-      font-size: 18px;
-      font-weight: 400;
-      color: var(--text);
-      margin: 1.8rem 0 0.6rem;
-      padding-bottom: 8px;
-      border-bottom: 0.5px solid var(--border);
-    }
-
-    .result-content h2:first-child { margin-top: 0; }
-
-    .result-content h3 {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text);
-      margin: 1.2rem 0 0.4rem;
-    }
-
-    .result-content p { margin-bottom: 0.6rem; }
-
-    .result-content ul, .result-content ol {
-      margin: 0.4rem 0 0.7rem 1.4rem;
-    }
-
-    .result-content li { margin-bottom: 0.3rem; }
-    .result-content strong { font-weight: 500; }
-    .result-content em { color: var(--text2); font-style: italic; }
-
-    .result-content code {
-      font-family: monospace;
-      font-size: 12.5px;
-      background: var(--surface2);
-      padding: 1px 5px;
-      border-radius: 4px;
-    }
-
-    .result-content hr {
-      border: none;
-      border-top: 0.5px solid var(--border);
-      margin: 1.2rem 0;
-    }
-
-    .reset-link {
-      display: block;
-      text-align: center;
-      font-size: 13px;
-      color: var(--text2);
-      cursor: pointer;
-      margin-top: 1.5rem;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-      background: none;
-      border: none;
-      font-family: inherit;
-    }
-
-    .reset-link:hover { color: var(--text); }
-
-    /* ── Drop zone ── */
-    .drop-zone {
-      border: 1.5px dashed var(--border-mid);
-      border-radius: var(--radius-md);
-      padding: 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.18s;
-      background: var(--surface2);
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0a0c10;
+      --bg2:#0f1117;
+      --sidebar:#0d1018;
+      --surface:#141720;
+      --surface2:#1a1e2a;
+      --surface3:#1f2433;
+      --border:rgba(255,255,255,0.06);
+      --border2:rgba(255,255,255,0.10);
+      --border3:rgba(255,255,255,0.16);
+      --accent:#4f8ef7;
+      --accent2:#6366f1;
+      --accent-glow:rgba(79,142,247,0.15);
+      --accent-glow2:rgba(99,102,241,0.12);
+      --green:#22c55e;
+      --green-dim:rgba(34,197,94,0.12);
+      --red:#ef4444;
+      --red-dim:rgba(239,68,68,0.12);
+      --amber:#f59e0b;
+      --amber-dim:rgba(245,158,11,0.12);
+      --text:#e8eaf0;
+      --text2:#8b90a0;
+      --text3:#555a6a;
+      --sidebar-w:260px;
+      --header-h:56px;
+      --radius:10px;
+      --radius-sm:6px;
+      --radius-lg:14px;
+    }
+    html{font-size:15px;-webkit-font-smoothing:antialiased}
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+    /* ─── TOPBAR ─── */
+    .topbar{
+      position:fixed;top:0;left:0;right:0;height:var(--header-h);
+      background:rgba(10,12,16,0.85);backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--border);
+      display:flex;align-items:center;padding:0 20px 0 calc(var(--sidebar-w) + 20px);
+      z-index:100;gap:12px;
+    }
+    .topbar-title{font-size:14px;font-weight:500;color:var(--text2);flex:1}
+    .topbar-badge{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:4px 12px;border-radius:20px;
+      background:var(--accent-glow);border:1px solid rgba(79,142,247,0.25);
+      font-size:11px;font-weight:500;color:var(--accent);letter-spacing:0.3px;
+    }
+    .topbar-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+    /* ─── SIDEBAR ─── */
+    .sidebar{
+      position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-w);
+      background:var(--sidebar);border-right:1px solid var(--border);
+      display:flex;flex-direction:column;z-index:200;
+    }
+    .sidebar-logo{
+      height:var(--header-h);display:flex;align-items:center;padding:0 20px;
+      border-bottom:1px solid var(--border);gap:10px;flex-shrink:0;
+    }
+    .logo-icon{
+      width:30px;height:30px;border-radius:8px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      display:flex;align-items:center;justify-content:center;
+      font-size:14px;flex-shrink:0;
+    }
+    .logo-text{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-0.2px}
+    .logo-sub{font-size:10px;color:var(--text3);margin-top:1px}
+
+    .sidebar-section{padding:16px 12px 6px;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+
+    .nav-item{
+      display:flex;align-items:center;gap:10px;
+      padding:9px 12px;margin:1px 8px;
+      border-radius:var(--radius-sm);cursor:pointer;
+      transition:all 0.15s;color:var(--text2);font-size:13px;font-weight:400;
+      border:1px solid transparent;
+    }
+    .nav-item:hover{background:var(--surface2);color:var(--text)}
+    .nav-item.active{
+      background:var(--accent-glow);border-color:rgba(79,142,247,0.2);
+      color:var(--accent);font-weight:500;
+    }
+    .nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+    .nav-label{flex:1}
+    .nav-arrow{font-size:10px;opacity:0.4}
+    .nav-item.active .nav-arrow{opacity:1}
+
+    .sidebar-divider{height:1px;background:var(--border);margin:10px 16px}
+
+    .sidebar-api{padding:12px;margin:0 8px 12px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface)}
+    .api-label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px}
+    .api-input-row{display:flex;gap:6px}
+    .api-input{
+      flex:1;padding:7px 10px;background:var(--bg);border:1px solid var(--border2);
+      border-radius:var(--radius-sm);color:var(--text);font-family:'JetBrains Mono',monospace;
+      font-size:11px;outline:none;transition:border-color 0.15s;
+    }
+    .api-input:focus{border-color:var(--accent)}
+    .api-input::placeholder{color:var(--text3)}
+    .api-save-btn{
+      padding:7px 12px;background:var(--accent);color:#fff;border:none;
+      border-radius:var(--radius-sm);font-size:11px;font-weight:600;cursor:pointer;
+      font-family:'Inter',sans-serif;transition:opacity 0.15s;white-space:nowrap;
+    }
+    .api-save-btn:hover{opacity:0.85}
+    .api-status{font-size:11px;margin-top:6px;display:flex;align-items:center;gap:5px}
+    .api-status-dot{width:5px;height:5px;border-radius:50%}
+    .api-status.ok .api-status-dot{background:var(--green)}
+    .api-status.ok span{color:var(--green)}
+    .api-status.miss .api-status-dot{background:var(--amber)}
+    .api-status.miss span{color:var(--amber)}
+
+    /* ─── MAIN ─── */
+    .main{
+      margin-left:var(--sidebar-w);
+      padding-top:var(--header-h);
+      min-height:100vh;
+      display:flex;flex-direction:column;
+    }
+    .main-inner{
+      flex:1;padding:32px 36px;max-width:900px;width:100%;
+    }
+
+    /* ─── PAGE HEADER ─── */
+    .page-header{margin-bottom:28px}
+    .page-eyebrow{
+      font-size:11px;font-weight:600;color:var(--accent);letter-spacing:1px;
+      text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:6px;
+    }
+    .page-eyebrow::before{content:'';display:block;width:16px;height:1px;background:var(--accent)}
+    .page-title{font-size:24px;font-weight:600;color:var(--text);letter-spacing:-0.4px;margin-bottom:6px}
+    .page-desc{font-size:13px;color:var(--text2);line-height:1.6}
+
+    /* ─── CARD ─── */
+    .card{
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:var(--radius-lg);padding:20px 22px;margin-bottom:16px;
+    }
+    .card-label{
+      font-size:10px;font-weight:600;color:var(--text3);letter-spacing:1px;
+      text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;
+    }
+    .card-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+    /* ─── TEXTAREA ─── */
+    .textarea-wrap{position:relative}
+    textarea{
+      width:100%;min-height:180px;max-height:380px;
+      padding:14px;background:var(--bg2);
+      border:1px solid var(--border2);border-radius:var(--radius);
+      color:var(--text);font-family:'Inter',sans-serif;font-size:13px;
+      line-height:1.7;resize:vertical;outline:none;transition:border-color 0.15s;
+    }
+    textarea:focus{border-color:var(--accent)}
+    textarea::placeholder{color:var(--text3)}
+    .char-count{
+      position:absolute;bottom:10px;right:12px;
+      font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;
+      background:var(--bg2);padding:2px 6px;border-radius:4px;
+    }
+    .char-count.warn{color:var(--amber)}
+
+    /* ─── HINT ─── */
+    .hint-bar{
+      display:flex;align-items:flex-start;gap:8px;margin-top:10px;
+      padding:9px 12px;background:var(--surface2);border:1px solid var(--border);
+      border-radius:var(--radius-sm);font-size:12px;color:var(--text2);line-height:1.5;
+    }
+    .hint-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px}
+
+    /* ─── DROP ZONE ─── */
+    .drop-zone{
+      border:1.5px dashed var(--border2);border-radius:var(--radius);
+      padding:22px;text-align:center;cursor:pointer;transition:all 0.18s;
+      background:var(--bg2);
+    }
+    .drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-glow)}
+    .drop-icon{font-size:26px;margin-bottom:8px}
+    .drop-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px}
+    .drop-desc{font-size:11px;color:var(--text2)}
+
+    /* ─── FILE LIST ─── */
+    .file-list{margin-top:10px;display:flex;flex-direction:column;gap:5px}
+    .file-item{
+      display:flex;align-items:center;gap:8px;padding:7px 10px;
+      background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;
+    }
+    .file-item-icon{font-size:14px;flex-shrink:0}
+    .file-item-name{flex:1;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .file-item-size{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;flex-shrink:0}
+    .file-item-remove{background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:0 2px;line-height:1;flex-shrink:0}
+    .file-item-remove:hover{color:var(--red)}
+    .file-item.loading{opacity:0.5}
+    .file-item.error{border-color:rgba(239,68,68,0.3);background:var(--red-dim)}
+    .file-item.ready{border-color:rgba(34,197,94,0.25)}
+    .rev-file-ok{
+      display:flex;align-items:center;gap:8px;margin-top:10px;
+      padding:8px 12px;background:var(--surface2);border:1px solid var(--border);
+      border-radius:var(--radius-sm);font-size:12px;color:var(--text);
+    }
+
+    /* ─── RUN BUTTON ─── */
+    .run-btn{
+      width:100%;padding:13px;margin-top:16px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:#fff;border:none;border-radius:var(--radius);
+      font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
+      cursor:pointer;transition:all 0.15s;letter-spacing:0.2px;
+      box-shadow:0 0 20px var(--accent-glow);
+    }
+    .run-btn:hover:not(:disabled){opacity:0.9;box-shadow:0 0 30px rgba(79,142,247,0.25)}
+    .run-btn:active:not(:disabled){transform:scale(0.99)}
+    .run-btn:disabled{background:var(--surface2);color:var(--text3);cursor:not-allowed;box-shadow:none}
+
+    /* ─── ERROR ─── */
+    .error-bar{
+      display:none;margin-top:10px;padding:10px 14px;
+      background:var(--red-dim);border:1px solid rgba(239,68,68,0.25);
+      border-radius:var(--radius-sm);font-size:12px;color:#fca5a5;
+    }
+    .error-bar.visible{display:block}
+
+    /* ─── LOADING ─── */
+    .loading-screen{display:none;text-align:center;padding:80px 20px}
+    .loading-screen.visible{display:block}
+    .spinner-ring{
+      width:48px;height:48px;margin:0 auto 20px;
+      border:2px solid var(--border2);border-top-color:var(--accent);
+      border-radius:50%;animation:spin 0.8s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-title{font-size:18px;font-weight:600;color:var(--text);margin-bottom:6px}
+    .loading-sub{font-size:13px;color:var(--text2)}
+    .loading-steps{
+      display:flex;justify-content:center;gap:6px;margin-top:20px;flex-wrap:wrap;
+    }
+    .loading-step{
+      font-size:11px;padding:4px 10px;border-radius:20px;
+      background:var(--surface);border:1px solid var(--border);color:var(--text3);
+    }
+    .loading-step.active{background:var(--accent-glow);border-color:rgba(79,142,247,0.25);color:var(--accent)}
+
+    /* ─── RESULT ─── */
+    .result-screen{display:none}
+    .result-screen.visible{display:block}
+    .result-topbar{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:12px;margin-bottom:16px;flex-wrap:wrap;
+    }
+    .result-left{display:flex;flex-direction:column;gap:6px}
+    .result-badge{
+      display:inline-flex;align-items:center;gap:6px;padding:5px 14px;
+      border-radius:20px;background:var(--accent-glow);border:1px solid rgba(79,142,247,0.25);
+      font-size:12px;font-weight:500;color:var(--accent);
+    }
+    .token-row{display:flex;gap:6px;flex-wrap:wrap}
+    .token-pill{
+      font-size:10px;padding:3px 8px;border-radius:20px;
+      background:var(--surface);border:1px solid var(--border);
+      color:var(--text3);font-family:'JetBrains Mono',monospace;
+    }
+    .result-actions{display:flex;gap:6px}
+    .action-btn{
+      padding:7px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);
+      background:var(--surface);color:var(--text2);font-size:12px;font-weight:500;
+      font-family:'Inter',sans-serif;cursor:pointer;transition:all 0.12s;
+    }
+    .action-btn:hover{background:var(--surface2);border-color:var(--border3);color:var(--text)}
+    .action-btn.primary{background:var(--accent-glow);border-color:rgba(79,142,247,0.3);color:var(--accent)}
+    .action-btn.primary:hover{background:rgba(79,142,247,0.2)}
+    .action-btn.tj{background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--amber)}
+    .action-btn.tj:hover{background:rgba(245,158,11,0.18)}
+    .action-btn.tj:disabled{opacity:0.5;cursor:not-allowed}
+
+    /* ─── TJ MODAL ─── */
+    .tj-modal-overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);
+      z-index:900;display:flex;align-items:center;justify-content:center;
+      opacity:0;pointer-events:none;transition:opacity 0.2s;
+    }
+    .tj-modal-overlay.open{opacity:1;pointer-events:auto}
+    .tj-modal{
+      background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);
+      padding:28px 32px;max-width:460px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.5);
+    }
+    .tj-modal-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+    .tj-modal-sub{font-size:12px;color:var(--text2);margin-bottom:20px;line-height:1.6}
+    .tj-modal-btns{display:flex;flex-direction:column;gap:10px}
+    .tj-dl-btn{
+      display:flex;align-items:center;gap:12px;padding:14px 18px;
+      border:1px solid var(--border2);border-radius:var(--radius);
+      background:var(--surface2);cursor:pointer;transition:all 0.15s;
+      font-family:'Inter',sans-serif;text-align:left;width:100%;
+    }
+    .tj-dl-btn:hover{background:var(--surface3);border-color:var(--border3)}
+    .tj-dl-btn:disabled{opacity:0.4;cursor:not-allowed}
+    .tj-dl-icon{font-size:22px;flex-shrink:0}
+    .tj-dl-label{font-size:13px;font-weight:500;color:var(--text)}
+    .tj-dl-desc{font-size:11px;color:var(--text3);margin-top:2px}
+    .tj-modal-close{
+      margin-top:16px;width:100%;padding:9px;border:1px solid var(--border);
+      border-radius:var(--radius-sm);background:none;color:var(--text3);
+      font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;
+    }
+    .tj-modal-close:hover{color:var(--text);border-color:var(--border2)}
+    .tj-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(245,158,11,0.3);border-top-color:var(--amber);border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .result-content{
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:var(--radius-lg);padding:28px 32px;
+      font-size:13.5px;line-height:1.85;color:var(--text);
+    }
+    .result-content h2{
+      font-size:16px;font-weight:600;color:var(--text);
+      margin:1.8rem 0 0.7rem;padding-bottom:8px;
+      border-bottom:1px solid var(--border);letter-spacing:-0.2px;
+    }
+    .result-content h2:first-child{margin-top:0}
+    .result-content h2::before{content:'';display:inline-block;width:3px;height:14px;background:var(--accent);border-radius:2px;margin-right:8px;vertical-align:middle}
+    .result-content h3{font-size:13.5px;font-weight:600;color:var(--text);margin:1.2rem 0 0.4rem}
+    .result-content p{margin-bottom:0.6rem;color:var(--text2)}
+    .result-content ul,.result-content ol{margin:0.4rem 0 0.7rem 1.4rem}
+    .result-content li{margin-bottom:0.3rem;color:var(--text2)}
+    .result-content strong{font-weight:600;color:var(--text)}
+    .result-content em{color:var(--text3)}
+    .result-content code{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--surface2);padding:1px 6px;border-radius:4px;color:var(--accent)}
+    .result-content table{width:100%;border-collapse:collapse;margin:0.8rem 0;font-size:12.5px}
+    .result-content th{background:var(--surface2);padding:8px 12px;text-align:left;border:1px solid var(--border2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2)}
+    .result-content td{padding:8px 12px;border:1px solid var(--border);color:var(--text2)}
+    .result-content tr:nth-child(even) td{background:var(--surface2)}
+    .result-content hr{border:none;border-top:1px solid var(--border);margin:1.2rem 0}
+
+    .back-btn{
+      display:inline-flex;align-items:center;gap:6px;margin-top:20px;
+      font-size:12px;color:var(--text3);cursor:pointer;background:none;border:none;
+      font-family:'Inter',sans-serif;transition:color 0.15s;
+    }
+    .back-btn:hover{color:var(--accent)}
+
+    /* ─── REVIEW REPORT ─── */
+    .review-summary{
+      display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;
+    }
+    .review-stat{
+      text-align:center;padding:16px 10px;border-radius:var(--radius);
+      background:var(--surface2);border:1px solid var(--border);
+    }
+    .review-stat-num{font-size:28px;font-weight:700;line-height:1;margin-bottom:4px;font-family:'JetBrains Mono',monospace}
+    .review-stat-label{font-size:10px;color:var(--text3);letter-spacing:0.5px}
+    .review-error-list{display:flex;flex-direction:column;gap:10px}
+    .review-error-card{
+      border:1px solid var(--border);border-radius:var(--radius);
+      padding:14px 16px;background:var(--surface);
+    }
+    .review-error-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+    .cat-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:0.3px}
+    .cat-portugues{background:var(--red-dim);color:#fca5a5;border:1px solid rgba(239,68,68,0.2)}
+    .cat-formatacao{background:var(--accent-glow);color:var(--accent);border:1px solid rgba(79,142,247,0.2)}
+    .cat-padronizacao{background:var(--green-dim);color:#86efac;border:1px solid rgba(34,197,94,0.2)}
+    .review-error-desc{font-size:13px;color:var(--text);margin-bottom:8px}
+    .review-error-trecho{
+      font-family:'JetBrains Mono',monospace;font-size:11.5px;
+      background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);
+      padding:8px 12px;margin-bottom:8px;color:var(--text2);word-break:break-word;
+    }
+    .review-error-sugestao{
+      font-size:12px;color:#86efac;background:var(--green-dim);
+      border:1px solid rgba(34,197,94,0.2);border-radius:var(--radius-sm);padding:8px 12px;
+    }
+    .review-error-sugestao strong{font-weight:600}
+
+    /* ─── MOBILE ─── */
+    .mob-toggle{display:none;position:fixed;top:12px;left:12px;z-index:300;
+      background:var(--surface);border:1px solid var(--border2);border-radius:8px;
+      padding:8px;cursor:pointer;color:var(--text);font-size:18px;line-height:1}
+    .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:190}
+
+    @media(max-width:768px){
+      .mob-toggle{display:flex}
+      .sidebar{transform:translateX(-100%);transition:transform 0.25s}
+      .sidebar.open{transform:translateX(0)}
+      .sidebar-overlay.open{display:block}
+      .topbar{padding-left:60px}
+      .main{margin-left:0}
+      .main-inner{padding:20px 16px}
+      .review-summary{grid-template-columns:repeat(2,1fr)}
+      .result-content{padding:18px 16px}
     }
-
-    .drop-zone:hover, .drop-zone.drag-over {
-      border-color: var(--brand-mid);
-      background: var(--brand-light);
-    }
-
-    .drop-icon { font-size: 28px; margin-bottom: 8px; }
-
-    .drop-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 3px;
-    }
-
-    .drop-desc {
-      font-size: 12px;
-      color: var(--text2);
-    }
-
-    /* ── File list ── */
-    .file-list {
-      margin-top: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .file-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
-      background: var(--surface2);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-sm);
-      font-size: 13px;
-    }
-
-    .file-item-icon { font-size: 16px; flex-shrink: 0; }
-
-    .file-item-name {
-      flex: 1;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .file-item-size { font-size: 11px; color: var(--text2); flex-shrink: 0; }
-
-    .file-item-remove {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--text2);
-      font-size: 16px;
-      padding: 0 2px;
-      line-height: 1;
-      flex-shrink: 0;
-    }
-
-    .file-item-remove:hover { color: #a32d2d; }
-
-    .file-item.loading { opacity: 0.6; }
-    .file-item.error { border-color: #f7c1c1; background: #fcebeb; }
-    .file-item.ready { border-color: #b5d4b5; }
-
-    /* ── Review report ── */
-    .review-summary {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 1.5rem;
-      padding: 16px;
-      background: var(--surface2);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-md);
-    }
-
-    .review-summary-item {
-      flex: 1;
-      min-width: 100px;
-      text-align: center;
-      padding: 10px;
-      border-radius: var(--radius-sm);
-      border: 0.5px solid var(--border);
-      background: var(--surface);
-    }
-
-    .review-summary-count {
-      font-family: 'DM Serif Display', serif;
-      font-size: 28px;
-      font-weight: 400;
-      line-height: 1;
-      margin-bottom: 4px;
-    }
-
-    .review-summary-label { font-size: 11px; color: var(--text2); }
-
-    .review-error-list { display: flex; flex-direction: column; gap: 12px; }
-
-    .review-error-card {
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 14px 16px;
-      background: var(--surface);
-    }
-
-    .review-error-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
-    .cat-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .cat-portugues  { background: #fce8e8; color: #8b1a1a; border: 0.5px solid #f7c1c1; }
-    .cat-formatacao { background: #e8f0fc; color: #1a3a8b; border: 0.5px solid #b5c8f4; }
-    .cat-padronizacao { background: #f0fce8; color: #2a6b10; border: 0.5px solid #b5d4a0; }
-
-    .review-error-desc { font-size: 13.5px; color: var(--text); margin-bottom: 8px; }
-
-    .review-error-trecho {
-      font-family: monospace;
-      font-size: 12.5px;
-      background: var(--surface2);
-      border: 0.5px solid var(--border);
-      border-radius: 6px;
-      padding: 8px 10px;
-      margin-bottom: 8px;
-      color: var(--text);
-      word-break: break-word;
-    }
-
-    .review-error-sugestao {
-      font-size: 12.5px;
-      color: #2a6b10;
-      background: #f0fce8;
-      border: 0.5px solid #b5d4a0;
-      border-radius: 6px;
-      padding: 8px 10px;
-    }
-
-    .review-error-sugestao strong { font-weight: 500; }
-
-    .rev-file-ok {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 10px;
-      padding: 8px 12px;
-      background: var(--surface2);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-sm);
-      font-size: 13px;
-      color: var(--text);
-    }
-
-    /* ── Footer ── */
-    footer {
-      text-align: center;
-      font-size: 12px;
-      color: var(--text3);
-      margin-top: 3rem;
-    }
-
-    footer a { color: var(--text2); text-underline-offset: 2px; }
   </style>
 </head>
 <body>
-<div class="container">
 
-  <!-- Header -->
-  <header class="site-header">
-    <div class="logo-pill">
-      <div class="logo-dot"></div>
-      Powered by Claude AI
-    </div>
-    <h1>Analisador de <em>Reuniões</em></h1>
-    <p class="subtitle">Transforme transcrições longas em documentação estruturada — atas, requisitos e visão de produto em segundos.</p>
-  </header>
+<button class="mob-toggle" onclick="toggleSidebar()">☰</button>
+<div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
 
-  <!-- API Key -->
-  <div class="api-banner" id="api-banner">
-    <div class="api-banner-icon">🔑</div>
-    <div class="api-banner-body">
-      <div class="api-banner-title">Chave de API da Anthropic</div>
-      <div class="api-banner-desc">
-        Necessária para processar as transcrições. Obtenha a sua em
-        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.
-        A chave fica salva apenas no seu navegador (localStorage).
-      </div>
-      <div class="api-key-row">
-        <input
-          type="password"
-          class="api-key-input"
-          id="api-key-input"
-          placeholder="sk-ant-api03-..."
-          autocomplete="off"
-        />
-        <button class="api-key-save" onclick="saveKey()">Salvar</button>
-        <span class="api-key-status missing" id="key-status">Não configurada</span>
-      </div>
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🤖</div>
+    <div>
+      <div class="logo-text">Meu Analista</div>
+      <div class="logo-sub">Powered by Claude AI</div>
     </div>
   </div>
 
-  <!-- Input section -->
-  <div id="input-section">
+  <div class="sidebar-section">Documentos</div>
 
-    <!-- Mode -->
-    <div class="card">
-      <div class="section-label">1 — Tipo de documento</div>
-      <div class="mode-grid">
-        <div class="mode-card active" id="card-ata" onclick="selectMode('ata')">
-          <div class="mode-check" id="check-ata">✓</div>
-          <div class="mode-icon">📋</div>
-          <div class="mode-title">Ata de Reunião</div>
-          <div class="mode-desc">Data, participantes, pauta, resumo por item e próximas providências</div>
-        </div>
-        <div class="mode-card" id="card-req" onclick="selectMode('req')">
-          <div class="mode-check" id="check-req"></div>
-          <div class="mode-icon">📄</div>
-          <div class="mode-title">Especificação de Requisitos</div>
-          <div class="mode-desc">Objetivo, RF, RNF, atores, cenário To Be e dependências críticas</div>
-        </div>
-        <div class="mode-card" id="card-visao" onclick="selectMode('visao')">
-          <div class="mode-check" id="check-visao"></div>
-          <div class="mode-icon">🗂️</div>
-          <div class="mode-title">Visão de Produto</div>
-          <div class="mode-desc">Problema, stakeholders, EAP, escopo, premissas e restrições</div>
-        </div>
-        <div class="mode-card" id="card-pop" onclick="selectMode('pop')">
-          <div class="mode-check" id="check-pop"></div>
-          <div class="mode-icon">📑</div>
-          <div class="mode-title">POP / IT</div>
-          <div class="mode-desc">Fluxo de atividades, participantes, pauta e próximas providências</div>
-        </div>
-        <div class="mode-card" id="card-rev" onclick="selectMode('rev')">
-          <div class="mode-check" id="check-rev"></div>
-          <div class="mode-icon">🔍</div>
-          <div class="mode-title">Revisão de Documento</div>
-          <div class="mode-desc">Erros de português, formatação e inconsistências de padronização</div>
-        </div>
-      </div>
+  <div class="nav-item active" id="nav-ata" onclick="selectMode('ata')">
+    <span class="nav-icon">📋</span>
+    <span class="nav-label">Ata de Reunião</span>
+    <span class="nav-arrow">›</span>
+  </div>
+  <div class="nav-item" id="nav-req" onclick="selectMode('req')">
+    <span class="nav-icon">📄</span>
+    <span class="nav-label">Especificação de Requisitos</span>
+    <span class="nav-arrow">›</span>
+  </div>
+  <div class="nav-item" id="nav-visao" onclick="selectMode('visao')">
+    <span class="nav-icon">🗂️</span>
+    <span class="nav-label">Visão de Produto</span>
+    <span class="nav-arrow">›</span>
+  </div>
+  <div class="nav-item" id="nav-pop" onclick="selectMode('pop')">
+    <span class="nav-icon">📑</span>
+    <span class="nav-label">POP / IT</span>
+    <span class="nav-arrow">›</span>
+  </div>
+  <div class="nav-item" id="nav-rev" onclick="selectMode('rev')">
+    <span class="nav-icon">🔍</span>
+    <span class="nav-label">Revisão de Documento</span>
+    <span class="nav-arrow">›</span>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <div style="flex:1"></div>
+
+  <div class="sidebar-api">
+    <div class="api-label">Chave API Anthropic</div>
+    <div class="api-input-row">
+      <input type="password" class="api-input" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off"/>
+      <button class="api-save-btn" onclick="saveKey()">Salvar</button>
+    </div>
+    <div class="api-status miss" id="key-status">
+      <div class="api-status-dot"></div>
+      <span>Não configurada</span>
+    </div>
+  </div>
+</aside>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-title" id="topbar-title">Ata de Reunião</div>
+  <div class="topbar-badge"><div class="topbar-dot"></div> Claude AI</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+<div class="main-inner">
+
+  <!-- INPUT SECTION -->
+  <div id="input-section">
+    <div class="page-header">
+      <div class="page-eyebrow">Análise com IA</div>
+      <div class="page-title" id="page-title">Ata de Reunião</div>
+      <div class="page-desc" id="page-desc">Gera data, participantes, pauta, resumo por item e próximas providências.</div>
     </div>
 
-    <!-- Revisão de Documento upload (só aparece neste modo) -->
+    <!-- Revisão card (só aparece no modo rev) -->
     <div class="card" id="rev-card" style="display:none">
-      <div class="section-label">2 — Documento para revisão (.docx)</div>
+      <div class="card-label">Documento para Revisão (.docx)</div>
       <div class="drop-zone" id="rev-drop-zone" onclick="document.getElementById('rev-file-input').click()">
         <div class="drop-icon">📝</div>
         <div class="drop-title">Clique ou arraste o arquivo .docx aqui</div>
         <div class="drop-desc">Apenas arquivos Word (.docx) são suportados neste modo</div>
-        <input type="file" id="rev-file-input" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none" onchange="handleDocxFile(this.files[0])" />
+        <input type="file" id="rev-file-input" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none" onchange="handleDocxFile(this.files[0])"/>
       </div>
       <div id="rev-file-status"></div>
     </div>
 
-    <!-- Transcript -->
+    <!-- Transcript card -->
     <div class="card" id="transcript-card">
-      <div class="section-label">2 — Transcrição da reunião</div>
+      <div class="card-label">Transcrição da Reunião</div>
       <div class="textarea-wrap">
-        <textarea
-          id="transcript"
-          placeholder="Cole aqui a transcrição completa da reunião...
-
-Transcrições de 1h a 1h30 são suportadas sem perda de conteúdo. O modelo processa o texto integralmente antes de gerar o documento."
-          oninput="updateCount(this)"
-        ></textarea>
+        <textarea id="transcript" placeholder="Cole aqui a transcrição completa da reunião...&#10;&#10;Transcrições de 1h a 1h30 são suportadas sem perda de conteúdo." oninput="updateCount(this)"></textarea>
         <span class="char-count" id="char-count">0 caracteres</span>
       </div>
       <div class="hint-bar">
         <div class="hint-dot"></div>
-        <span>Transcrições longas são processadas completamente — o modelo suporta até ~200 mil tokens de entrada, equivalente a várias horas de reunião.</span>
+        <span>O modelo processa o texto integralmente — suporta até ~200 mil tokens de entrada, equivalente a várias horas de reunião.</span>
       </div>
     </div>
 
-    <!-- Attachments -->
+    <!-- Attachments card -->
     <div class="card" id="attachments-card">
-      <div class="section-label">3 — Anexos (opcional)</div>
+      <div class="card-label">Anexos (opcional)</div>
       <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
         <div class="drop-icon">📎</div>
         <div class="drop-title">Clique ou arraste arquivos aqui</div>
-        <div class="drop-desc">PDF, imagens (PNG, JPG, WEBP), planilhas Excel (.xlsx, .xls) — múltiplos arquivos suportados</div>
-        <input type="file" id="file-input" multiple accept=".pdf,image/png,image/jpeg,image/webp,image/gif,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="handleFiles(this.files)" />
+        <div class="drop-desc">PDF, imagens (PNG, JPG, WEBP), planilhas Excel (.xlsx, .xls) — múltiplos arquivos</div>
+        <input type="file" id="file-input" multiple accept=".pdf,image/png,image/jpeg,image/webp,image/gif,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="handleFiles(this.files)"/>
       </div>
       <div id="file-list"></div>
     </div>
 
-    <button class="run-btn" id="run-btn" onclick="runAnalysis()">
-      Analisar transcrição e anexos →
-    </button>
+    <button class="run-btn" id="run-btn" onclick="runAnalysis()">Analisar transcrição →</button>
     <div class="error-bar" id="error-bar"></div>
-
   </div>
 
-  <!-- Loading -->
+  <!-- LOADING -->
   <div class="loading-screen" id="loading-screen">
-    <div class="spinner"></div>
-    <div class="loading-title" id="loading-title">Analisando a transcrição...</div>
+    <div class="spinner-ring"></div>
+    <div class="loading-title" id="loading-title">Analisando...</div>
     <div class="loading-sub">Reuniões longas podem levar 30–60 segundos</div>
+    <div class="loading-steps">
+      <div class="loading-step active" id="step-0">Lendo conteúdo</div>
+      <div class="loading-step" id="step-1">Identificando participantes</div>
+      <div class="loading-step" id="step-2">Extraindo pontos-chave</div>
+      <div class="loading-step" id="step-3">Estruturando documento</div>
+      <div class="loading-step" id="step-4">Finalizando</div>
+    </div>
   </div>
 
-  <!-- Result -->
+  <!-- RESULT -->
   <div class="result-screen" id="result-screen">
-    <div class="result-top">
-      <div class="result-meta">
+    <div class="result-topbar">
+      <div class="result-left">
         <div class="result-badge" id="result-badge">📋 Ata de Reunião</div>
         <div class="token-row" id="token-row"></div>
       </div>
-      <div class="result-actions">
-        <button class="action-btn" onclick="copyResult()">Copiar Markdown</button>
-        <button class="action-btn" onclick="downloadResult()">Baixar .md</button>
+      <div class="result-actions" id="result-actions-area">
+        <button class="action-btn" onclick="copyResult()">Copiar</button>
+        <button class="action-btn primary" onclick="downloadResult()">↓ Baixar</button>
       </div>
     </div>
     <div class="result-content" id="result-content"></div>
-    <button class="reset-link" onclick="resetApp()">← Nova análise</button>
+    <button class="back-btn" onclick="resetApp()">← Nova análise</button>
   </div>
 
-  <footer>
-    Analisador de Reuniões &mdash; construído com <a href="https://anthropic.com" target="_blank">Claude API</a>
-  </footer>
+</div>
+</div>
 
+<!-- TJ-RO MODAL -->
+<div class="tj-modal-overlay" id="tj-modal-overlay">
+  <div class="tj-modal">
+    <div class="tj-modal-title">🏛️ Adequar ao Padrão TJ-RO</div>
+    <div class="tj-modal-sub" id="tj-modal-sub">O documento gerado será formatado conforme o modelo oficial do TJ-RO. Escolha o formato para download.</div>
+    <div class="tj-modal-btns" id="tj-modal-btns">
+      <button class="tj-dl-btn" id="tj-btn-docx" onclick="downloadTJDocx()">
+        <span class="tj-dl-icon">📝</span>
+        <div><div class="tj-dl-label">Baixar como Word (.docx)</div><div class="tj-dl-desc">Layout com cabeçalho, tabelas e formatação TJ-RO</div></div>
+      </button>
+      <button class="tj-dl-btn" id="tj-btn-md" onclick="downloadTJMd()">
+        <span class="tj-dl-icon">📄</span>
+        <div><div class="tj-dl-label">Baixar como Markdown (.md)</div><div class="tj-dl-desc">Texto estruturado no padrão TJ-RO, pronto para copiar</div></div>
+      </button>
+    </div>
+    <button class="tj-modal-close" onclick="closeTJModal()">Fechar</button>
+  </div>
 </div>
 
 <script>
-/* ── Prompts ── */
+/* ── PROMPTS ── */
 const PROMPT_ATA = `Persona
-Você é um analista de negócio sênior com anos de experiência em analisar reuniões de levantamento de requisitos de software e escrever documentos técnicos de negócios e requisitos. Você possui profundo conhecimento em metodologias ágeis, Design Thinking, técnicas de facilitação de workshops e escrita de documentos. Sua expertise inclui a capacidade de identificar insights valiosos em conversas não estruturadas e transformá-los em documentação clara e acionável que serve como base sólida para o desenvolvimento de produtos digitais e confecção de atas de reuniões.
-
-Contexto
-A seguir está a transcrição completa de uma reunião de levantamento de requisitos. O objetivo da reunião era definir as funcionalidades para um novo sistema, aplicando princípios de Design Thinking para garantir que a solução seja centrada no usuário e gere valor real para o negócio. Esta reunião representa a fase de Descoberta do processo de design, onde stakeholders, usuários e equipe técnica colaboraram para entender problemas, necessidades e oportunidades.
+Você é um analista de negócio sênior especializado em registrar reuniões de forma objetiva e fiel ao que foi dito.
 
 Tarefa
-Sua tarefa é ler a(s) transcrição(ões) e criar um retorno com base nos itens a seguir:
-1. Data e hora da reunião: Indicar a data e hora em que a agenda foi realizada
-2. Participantes: Listar quais foram os participantes
-3. Itens de pauta: Listar os itens de pauta abordados na reunião
-4. Resumo das interações por item de pauta: Criar um breve resumo dos pontos chaves conversados, registrando os envolvidos e organizando por itens de pauta
-5. Próximas providências: Listar as providências que ficaram acordadas durante as agendas
+Leia a(s) transcrição(ões) e gere uma ata de reunião com os itens abaixo.
 
 Restrições
-• Concentre-se exclusivamente em informações relevantes para a confecção da ata de reunião
-• Ignore cumprimentos, conversas casuais e qualquer conteúdo não relacionado ao projeto
-• Seja conciso e objetivo, mas não omita nuances importantes
-• Mantenha a linguagem técnica quando necessário, mas torne-a acessível
-• Identifique padrões e conexões entre diferentes pontos discutidos
+• Registre apenas o que foi dito, sem expandir, interpretar ou acrescentar informações
+• Não use texto gerado ou inferido; use as palavras e decisões da reunião
+• Seja direto: uma frase por decisão ou encaminhamento
+• Ignore cumprimentos, conversas casuais e qualquer conteúdo fora do escopo
+• Não use travessões (—); use vírgulas, parênteses ou hífen quando necessário
 
-Formato de Saída
-Produza um documento Markdown estruturado com os seguintes cabeçalhos de nível 2 (##):
+Formato de Saída — Markdown com cabeçalhos ##:
+• ## 1. DATA E HORA
+• ## 2. PARTICIPANTES
+• ## 3. ITENS DE PAUTA
+• ## 4. RESUMO DAS INTERAÇÕES POR ITEM DE PAUTA
+• ## 5. PRÓXIMAS PROVIDÊNCIAS
 
-Estrutura Obrigatória:
-• ## 1. DATA E HORA: Retorne a data da agenda e sua hora de início e término
-• ## 2. PARTICIPANTES: Liste os participantes, enumerando eles sequencialmente
-• ## 3. ITENS DE PAUTA: Liste os itens de pauta da agenda e enumere-os
-• ## 4. RESUMO DAS INTERAÇÕES POR ITEM DE PAUTA: Listar, por itens de pauta, um resumo das interações e pontos relevantes discutidos, associado ao tópico e enumerados de acordo com o item 3
-• ## 5. PRÓXIMAS PROVIDÊNCIAS: Listar as providências que ficaram acordadas nas agendas
-
-Instruções Específicas para Design Thinking
-• Empatia: Capture as emoções e frustrações dos usuários mencionadas
-• Definição: Identifique problemas claramente articulados
-• Ideação: Registre soluções e alternativas propostas
-• Prototipagem: Note qualquer menção a testes, validações ou experimentos
-• Teste: Capture feedback de usuários ou validações mencionadas
-
-O resumo deve identificar as partes envolvidas na interação e a interação de forma resumida.`;
+No item 4, identifique o participante e registre o ponto levantado em uma frase direta. No item 5, liste ação, responsável e prazo quando informados.`;
 
 const PROMPT_REQ = `Persona
-Você é um analista de negócio sênior com anos de experiência em analisar reuniões de levantamento de requisitos de software e escrever documentos técnicos de negócios e requisitos. Você possui profundo conhecimento em metodologias ágeis, Design Thinking, técnicas de facilitação de workshops e escrita de documentos. Sua expertise inclui a capacidade de identificar insights valiosos em conversas não estruturadas e transformá-los em documentação clara e acionável que serve como base sólida para o desenvolvimento de produtos digitais e confecção de atas de reuniões.
-
-Contexto
-A seguir está a transcrição completa de uma reunião de levantamento de requisitos. O objetivo da reunião era definir as funcionalidades para um novo sistema, aplicando princípios de Design Thinking para garantir que a solução seja centrada no usuário e gere valor real para o negócio. Esta reunião representa a fase de Descoberta do processo de design, onde stakeholders, usuários e equipe técnica colaboraram para entender problemas, necessidades e oportunidades.
+Você é um analista de negócio sênior especializado em escrever especificações de requisitos diretas e objetivas para desenvolvedores.
 
 Tarefa
-Sua tarefa é ler a(s) transcrição(ões) e criar um retorno com base nos itens a seguir:
-1. Extrair da transcrição o objetivo do projeto
-2. Criar um resumo da demanda
-3. Criar uma descrição da demanda
-4. Cenário proposto (To be)
-5. Requisitos funcionais (RF)
-6. Requisitos não funcionais (RNF)
-7. Considerações finais
-8. Dependências críticas
+Leia a(s) transcrição(ões) e gere uma especificação de requisitos conforme as regras abaixo.
 
-Restrições
-• Concentre-se exclusivamente em informações relevantes para a confecção da especificação de requisitos.
-• Ignore cumprimentos, conversas casuais e qualquer conteúdo não relacionado ao projeto
-• Seja conciso e objetivo, mas não omita nuances importantes
-• Mantenha a linguagem técnica quando necessário, mas torne-a acessível
-• Identifique padrões e conexões entre diferentes pontos discutidos
+Regras para Requisitos Funcionais (RF)
+• Escreva por tela, aba ou funcionalidade identificada na reunião
+• Cada RF descreve uma regra negocial clara: o que o sistema deve fazer e qual a condição, sem definir como implementar
+• Formato: "O sistema deve [ação]. [Condição ou comportamento esperado]."
+• Exemplo correto: "O CPF é obrigatório e deve ser válido com situação cadastral regular. Se inválido, o cadastro não é concluído e o usuário é avisado."
+• Exemplo a evitar: "O CPF deve ser consultado na Receita Federal pela API Consulta CPF do Serpro, no endpoint de consulta por CPF."
+• Seja direto; uma frase ou duas por requisito, sem parágrafos longos
 
-Formato de Saída
-Produza um documento Markdown estruturado com os seguintes cabeçalhos de nível 2 (##):
+Regras para Requisitos Não Funcionais (RNF)
+• Liste apenas 3 a 4 RNFs, somente os que foram citados ou são claramente justificados pela demanda
+• Não crie RNFs genéricos ou de preenchimento (desempenho, segurança e disponibilidade genéricos)
+• Cada RNF deve ter justificativa direta na reunião ou na natureza da demanda
+• Formato: "RNFxx — [descrição curta]. Justificativa: [razão objetiva extraída da reunião]."
 
-Estrutura Obrigatória:
-• ## 1. OBJETIVO: Retorne o objetivo do projeto
-• ## 2. NUMERO DA OS: Retorne o número da OS (se mencionado; caso contrário: "A definir")
-• ## 3. ANALISTA DE NEGÓCIOS: Retorne o nome do analista de Negócio da Ibrowse (se mencionado; caso contrário: "A definir")
-• ## 4. AREA DEMANDANTE: Retorne a área do cliente que solicitou a demanda
-• ## 5. RESUMO DA DEMANDA: Retorne um resumo da ação a ser tomada para solução do problema do cliente
-• ## 6. ATOR(ES) ENVOLVIDO(S): Retorne quem são os envolvidos na melhoria, que fará uso da solução
-• ## 7. DESCRIÇÃO DA DEMANDA: Descrição detalhada do problema e contexto
-• ## 8. CENÁRIO PROPOSTO (TO BE): Como o sistema deverá funcionar após a implementação
-• ## 9. REQUISITOS FUNCIONAIS (RF): Liste todos os requisitos funcionais identificados, numerados como RF01, RF02...
-• ## 10. REQUISITOS NÃO FUNCIONAIS (RNF): Liste os requisitos não funcionais, numerados como RNF01, RNF02...
-• ## 11. CONSIDERAÇÕES FINAIS: Pontos de atenção, riscos e observações relevantes
-• ## 12. DEPENDÊNCIAS CRÍTICAS: Liste as dependências críticas identificadas
+Restrições gerais
+• Não expanda o texto com conteúdo inferido; use apenas o que foi dito
+• Não adicione considerações finais com repetição do que já foi descrito
+• Não use travessões (—); use vírgulas, parênteses ou hífen quando necessário
+• Ignore cumprimentos e conversas casuais
 
-Instruções Específicas para Design Thinking
-• Empatia: Capture as emoções e frustrações dos usuários mencionadas
-• Definição: Identifique problemas claramente articulados
-• Ideação: Registre soluções e alternativas propostas
-• Prototipagem: Note qualquer menção a testes, validações ou experimentos
-• Teste: Capture feedback de usuários ou validações mencionadas
-
-O resumo deve identificar as partes envolvidas na interação e a interação de forma resumida.`;
+Formato de Saída — Markdown com cabeçalhos ##:
+• ## 1. OBJETIVO
+• ## 2. NUMERO DA OS (se mencionado; caso contrário: "A definir")
+• ## 3. ANALISTA DE NEGÓCIOS (se mencionado; caso contrário: "A definir")
+• ## 4. AREA DEMANDANTE
+• ## 5. RESUMO DA DEMANDA (máximo 3 linhas, apenas o essencial)
+• ## 6. ATOR(ES) ENVOLVIDO(S)
+• ## 7. SITUAÇÃO ATUAL (em poucas linhas: como o sistema funciona hoje e qual é o problema)
+• ## 8. CENÁRIO PROPOSTO (TO BE) (o que muda, de forma sucinta, na ordem das telas ou abas)
+• ## 9. REQUISITOS FUNCIONAIS (RF) — numerados RF01, RF02... agrupados por tela ou funcionalidade
+• ## 10. REQUISITOS NÃO FUNCIONAIS (RNF) — máximo 4, numerados RNF01, RNF02... com justificativa
+• ## 11. DEPENDÊNCIAS CRÍTICAS`;
 
 const PROMPT_VISAO = `Persona
-Você é um analista de negócio sênior com anos de experiência em analisar reuniões de levantamento de requisitos de software e escrever documentos técnicos de negócios e requisitos. Você possui profundo conhecimento em metodologias ágeis, Design Thinking, técnicas de facilitação de workshops e escrita de documentos. Sua expertise inclui a capacidade de identificar insights valiosos em conversas não estruturadas e transformá-los em documentação clara e acionável que serve como base sólida para o desenvolvimento de produtos digitais e confecção de atas de reuniões.
-
-Contexto
-A seguir está a transcrição completa de uma reunião de levantamento de requisitos. O objetivo da reunião era definir as funcionalidades para um novo sistema, aplicando princípios de Design Thinking para garantir que a solução seja centrada no usuário e gere valor real para o negócio. Esta reunião representa a fase de Descoberta do processo de design, onde stakeholders, usuários e equipe técnica colaboraram para entender problemas, necessidades e oportunidades.
+Você é um analista de negócio sênior especializado em visão de produto para projetos do Poder Judiciário.
 
 Tarefa
-Sua tarefa é ler a(s) transcrição(ões) e criar um retorno com base nos itens a seguir:
-1. Data e hora da reunião: Indicar a data e hora em que a agenda foi realizada
-2. Participantes: Listar quais foram os participantes
-3. Descrição do problema: Criar uma descrição do problema com base na transcrição
-4. Problemas enfrentados pelo solicitante: Explicar problemas enfrentados pelo solicitante
-5. Quais pessoas são impactadas pelo problema: Listar os usuários / pessoal / departamento ou setores afetados pelo problema
-6. Benefícios esperados
-7. Stakeholders
-8. Público-alvo
-9. Unidades envolvidas
-10. Equipe
-11. Visão do produto: Criar uma estrutura de EAP
-12. Escopo do produto
-13. Não Escopo
-14. Premissas
-15. Restrições
+Leia a(s) transcrição(ões) e anexos fornecidos e extraia as informações para preencher o documento de Visão de Produto. Retorne SOMENTE um JSON válido, sem nenhum texto antes ou depois, sem blocos de código markdown, com a estrutura abaixo.
 
-Restrições
-• Concentre-se exclusivamente em informações relevantes para a confecção da ata de reunião
-• Ignore cumprimentos, conversas casuais e qualquer conteúdo não relacionado ao projeto
-• Seja conciso e objetivo, mas não omita nuances importantes
-• Mantenha a linguagem técnica quando necessário, mas torne-a acessível
-• Identifique padrões e conexões entre diferentes pontos discutidos
+Regras de preenchimento
+• Use apenas o que foi dito nas transcrições; não invente ou expanda com inferências
+• Seja objetivo: frases curtas, sem parágrafos longos
+• Para campos sem informação, use "Não identificado na transcrição"
+• Não use travessões (—); use vírgulas, parênteses ou hífen quando necessário
 
-Formato de Saída
-Produza um documento Markdown estruturado com os seguintes cabeçalhos de nível 2 (##):
+{
+  "nome_produto": "Nome do sistema/produto identificado na transcrição",
+  "numero_os": "Número da OS se mencionado, senão 'A definir'",
+  "analista": "Nome do analista de negócios da IBrowse se mencionado, senão 'A definir'",
+  "data_doc": "Data atual no formato DD/MM/AAAA",
+  "objetivo": "Em uma frase: o que o produto deve entregar",
+  "descricao_problema": "Em poucas linhas: o que acontece hoje e por que é um problema",
+  "impactados": "Pessoas, setores ou departamentos afetados pelo problema",
+  "impacto": "O que o problema causa para o judiciário ou para o usuário final",
+  "beneficios": "Benefícios esperados, separados por ponto e vírgula, apenas os citados",
+  "publico_alvo": "Quem vai usar o produto",
+  "unidades": "Unidades organizacionais envolvidas",
+  "equipe": "Membros da equipe identificados na reunião",
+  "visao_produto": "Visão geral do produto: módulos ou funcionalidades principais em tópicos curtos",
+  "escopo": "O que será desenvolvido, separado por ponto e vírgula",
+  "nao_escopo": "O que NÃO será desenvolvido, separado por ponto e vírgula",
+  "integracoes": "Integrações necessárias, separadas por ponto e vírgula",
+  "riscos_integracao": "Riscos de cada integração, em frases curtas",
+  "premissas": "Condições necessárias para o projeto funcionar, separadas por ponto e vírgula",
+  "restricoes": "Restrições do projeto, separadas por ponto e vírgula",
+  "legislacao": "Legislações e normativas aplicáveis, separadas por ponto e vírgula",
+  "referencias": "Sistemas similares ou referências citadas na reunião"
+}
 
-Estrutura Obrigatória:
-• ## 1. DATA E HORA: Retorne a data da agenda e sua hora de início e término
-• ## 2. PARTICIPANTES: Liste os participantes, enumerando eles sequencialmente
-• ## 3. DESCRIÇÃO DO PROBLEMA: Descreva o problema central identificado na transcrição
-• ## 4. PROBLEMAS ENFRENTADOS PELO SOLICITANTE: Explique os problemas relatados pelo solicitante
-• ## 5. PESSOAS IMPACTADAS PELO PROBLEMA: Liste os usuários, departamentos ou setores afetados
-• ## 6. BENEFÍCIOS ESPERADOS: Liste os benefícios esperados com a solução
-• ## 7. STAKEHOLDERS: Identifique os stakeholders envolvidos
-• ## 8. PÚBLICO-ALVO: Descreva o público-alvo da solução
-• ## 9. UNIDADES ENVOLVIDAS: Liste as unidades organizacionais envolvidas
-• ## 10. EQUIPE: Identifique os membros da equipe mencionados
-• ## 11. VISÃO DO PRODUTO (EAP): Crie uma Estrutura Analítica do Projeto com os principais entregáveis
-• ## 12. ESCOPO DO PRODUTO: Descreva o que está dentro do escopo da solução
-• ## 13. NÃO ESCOPO: Liste o que está fora do escopo da solução
-• ## 14. PREMISSAS: Liste as premissas identificadas
-• ## 15. RESTRIÇÕES: Liste as restrições identificadas
-
-Instruções Específicas para Design Thinking
-• Empatia: Capture as emoções e frustrações dos usuários mencionadas
-• Definição: Identifique problemas claramente articulados
-• Ideação: Registre soluções e alternativas propostas
-• Prototipagem: Note qualquer menção a testes, validações ou experimentos
-• Teste: Capture feedback de usuários ou validações mencionadas
-
-Orientações para o Próximo passo
-Sua saída será utilizada por outro analista de negócio: ele será o responsável por criar uma documentação e preencher de acordo com o resultado resgatado por você
-• Destacar claramente o problema principal que o software deve resolver
-• Identificar os usuários primários e secundários
-• Mapear as principais jornadas ou fluxos de trabalho mencionados
-• Evidenciar critérios de sucesso e definições de "pronto"
-• Apontar itens de pautas e os resumos das interações relevantes associadas a esses itens
-
-O resumo deve identificar as partes envolvidas na interação e a interação de forma resumida.`;
+Retorne SOMENTE o JSON, sem explicações adicionais.`;
 
 const PROMPT_POP = `Persona
-Você é um analista de negócio sênior com anos de experiência em analisar reuniões de levantamento de requisitos de software e escrever documentos técnicos de negócios e requisitos. Você possui profundo conhecimento em metodologias ágeis, Design Thinking, técnicas de facilitação de workshops e escrita de documentos. Sua expertise inclui a capacidade de identificar insights valiosos em conversas não estruturadas e transformá-los em documentação clara e acionável que serve como base sólida para o desenvolvimento de produtos digitais e confecção de atas de reuniões.
-
-Contexto
-A seguir está a transcrição completa de uma reunião de levantamento de requisitos. O objetivo da reunião era definir as funcionalidades para um novo sistema, aplicando princípios de Design Thinking para garantir que a solução seja centrada no usuário e gere valor real para o negócio. Esta reunião representa a fase de Descoberta do processo de design, onde stakeholders, usuários e equipe técnica colaboraram para entender problemas, necessidades e oportunidades.
+Você é um analista de negócio sênior especializado em mapeamento de processos, metodologia SIPOC e confecção de POPs e ITs.
 
 Tarefa
-Sua tarefa é ler a(s) transcrição(ões) e criar um retorno com base nos itens a seguir:
-1. Data e hora da reunião: Indicar a data e hora em que a agenda foi realizada
-2. Participantes: Listar quais foram os participantes
-3. Itens de pauta: Listar os itens de pauta abordados na reunião
-4. Explicar o fluxo de atividades do entrevistado: Descrever detalhadamente o fluxo de atividades relatado pelo entrevistado, identificando as partes envolvidas em cada etapa
-5. Criar um fluxograma dos processos: Listar os processos em tópicos com seus respectivos fluxos, representando a sequência lógica de atividades em formato textual estruturado (use setas → para indicar fluxo, e colchetes [] para indicar decisões/condições)
-6. Descrever cada atividade observando a metodologia SIPOC: Para cada processo identificado, detalhar Supplier (Fornecedor), Input (Entrada), Process (Processo), Output (Saída) e Customer (Cliente)
-7. Sugerir insights e melhorias no processo, principalmente em automações: Identificar oportunidades de melhoria, gargalos, tarefas repetitivas passíveis de automação e boas práticas aplicáveis
+Leia a(s) transcrição(ões) e gere um documento POP/IT conforme as regras abaixo.
 
 Restrições
-• Concentre-se exclusivamente em informações relevantes para a confecção do POP/IT
-• Ignore cumprimentos, conversas casuais e qualquer conteúdo não relacionado ao projeto
-• Seja conciso e objetivo, mas não omita nuances importantes
-• Mantenha a linguagem técnica quando necessário, mas torne-a acessível
-• Identifique padrões e conexões entre diferentes pontos discutidos
+• Registre apenas o que foi descrito na reunião, sem inventar etapas ou expandir o processo
+• Seja direto: uma frase por atividade ou etapa
+• Não use travessões (—); use vírgulas, parênteses ou hífen quando necessário
+• Ignore cumprimentos e conversas casuais
 
-Formato de Saída
-Produza um documento Markdown estruturado com os seguintes cabeçalhos de nível 2 (##):
+Formato de Saída — Markdown com cabeçalhos ##:
+• ## 1. DATA E HORA
+• ## 2. PARTICIPANTES
+• ## 3. ITENS DE PAUTA
+• ## 4. FLUXO DE ATIVIDADES (liste cada etapa em ordem, com ator responsável)
+• ## 5. FLUXOGRAMA DOS PROCESSOS (use setas → e colchetes [] para decisões)
+• ## 6. DESCRIÇÃO DAS ATIVIDADES (SIPOC) — tabela: Fornecedor | Entrada | Processo | Saída | Cliente
+• ## 7. SUGESTÕES DE MELHORIA E AUTOMAÇÃO (apenas o que for viável com base na reunião, prioridade Alta/Média/Baixa)
+• ## 8. PRÓXIMAS PROVIDÊNCIAS (ação, responsável e prazo quando informados)`;
 
-Estrutura Obrigatória:
-• ## 1. DATA E HORA: Retorne a data da agenda e sua hora de início e término
-• ## 2. PARTICIPANTES: Liste os participantes, enumerando eles sequencialmente
-• ## 3. ITENS DE PAUTA: Liste os itens de pauta da agenda e enumere-os
-• ## 4. FLUXO DE ATIVIDADES DO ENTREVISTADO: Descreva detalhadamente o fluxo de atividades relatado, organizando por etapas e identificando os responsáveis por cada uma
-• ## 5. FLUXOGRAMA DOS PROCESSOS: Represente textualmente o fluxo de cada processo identificado usando a notação: Início → [Atividade 1] → [Decisão?] → Sim: [Atividade 2] / Não: [Atividade 3] → Fim
-• ## 6. DESCRIÇÃO DAS ATIVIDADES (SIPOC): Para cada processo, preencha a tabela SIPOC com: Fornecedor | Entrada | Processo | Saída | Cliente
-• ## 7. INSIGHTS E SUGESTÕES DE MELHORIA: Liste oportunidades de melhoria e automação identificadas, organizadas por prioridade (Alta / Média / Baixa)
-• ## 8. PRÓXIMAS PROVIDÊNCIAS: Listar as providências que ficaram acordadas nas agendas
-
-Instruções Específicas para Design Thinking
-• Empatia: Capture as emoções e frustrações dos usuários mencionadas
-• Definição: Identifique problemas claramente articulados
-• Ideação: Registre soluções e alternativas propostas
-• Prototipagem: Note qualquer menção a testes, validações ou experimentos
-• Teste: Capture feedback de usuários ou validações mencionadas
-
-Orientações para o Próximo passo
-Sua saída será utilizada por outro analista de negócio: ele será o responsável por criar a documentação POP/IT formal
-• Destacar claramente o problema principal que o processo deve resolver
-• Identificar os usuários primários e secundários do processo
-• Mapear as principais jornadas ou fluxos de trabalho mencionados
-• Evidenciar critérios de sucesso e definições de "pronto"
-• Destacar oportunidades de automação como prioridade
-
-O resumo deve identificar as partes envolvidas na interação e a interação de forma resumida.`;
-
-/* ── State ── */
+/* ── STATE ── */
 let currentMode = 'ata';
 let rawMarkdown  = '';
-
-/* ── Attachments ── */
-let attachments = []; // { name, size, type, base64, mediaType }
-
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
-
-function fileIcon(type, name) {
-  if (type === 'application/pdf') return '📄';
-  if (type.startsWith('image/')) return '🖼️';
-  if (type.includes('spreadsheet') || type.includes('excel') ||
-      (name && (name.endsWith('.xlsx') || name.endsWith('.xls')))) return '📊';
-  return '📎';
-}
-
-function isExcel(file) {
-  return file.type.includes('spreadsheet') || file.type.includes('excel') ||
-         file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-}
-
-function excelToText(arrayBuffer, filename) {
-  const wb = XLSX.read(arrayBuffer, { type: 'array' });
-  let result = `## Planilha: ${filename}\n\n`;
-  wb.SheetNames.forEach(sheetName => {
-    const ws = wb.Sheets[sheetName];
-    const csv = XLSX.utils.sheet_to_csv(ws, { skipHidden: true });
-    if (csv.trim()) {
-      result += `### Aba: ${sheetName}\n\`\`\`\n${csv}\n\`\`\`\n\n`;
-    }
-  });
-  return result;
-}
-
-function renderFileList() {
-  const el = document.getElementById('file-list');
-  if (attachments.length === 0) { el.innerHTML = ''; return; }
-  el.innerHTML = '<div class="file-list">' +
-    attachments.map((f, i) => `
-      <div class="file-item ${f.ready ? 'ready' : f.error ? 'error' : 'loading'}" id="fitem-${i}">
-        <span class="file-item-icon">${fileIcon(f.type, f.name)}</span>
-        <span class="file-item-name" title="${f.name}">${f.name}</span>
-        <span class="file-item-size">${formatSize(f.size)}</span>
-        <button class="file-item-remove" onclick="removeFile(${i})" title="Remover">×</button>
-      </div>`).join('') +
-    '</div>';
-}
-
-function removeFile(idx) {
-  attachments.splice(idx, 1);
-  renderFileList();
-}
-
-function handleFiles(files) {
-  Array.from(files).forEach(file => {
-    const allowed = ['application/pdf','image/png','image/jpeg','image/webp','image/gif'];
-    const excel   = isExcel(file);
-    if (!allowed.includes(file.type) && !excel) {
-      showErr('Tipo de arquivo não suportado: ' + file.name + '. Use PDF, imagens ou Excel.');
-      return;
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      showErr('Arquivo muito grande: ' + file.name + '. Máximo 20MB por arquivo.');
-      return;
-    }
-
-    const entry = { name: file.name, size: file.size, type: file.type, base64: null, textContent: null, isExcel: excel, ready: false, error: false };
-    attachments.push(entry);
-    renderFileList();
-
-    const reader = new FileReader();
-
-    if (excel) {
-      // Read Excel as ArrayBuffer and convert to CSV text
-      reader.onload = e => {
-        try {
-          entry.textContent = excelToText(e.target.result, file.name);
-          entry.ready = true;
-        } catch(err) {
-          entry.error = true;
-          showErr('Erro ao ler planilha: ' + file.name);
-        }
-        renderFileList();
-      };
-      reader.onerror = () => { entry.error = true; renderFileList(); };
-      reader.readAsArrayBuffer(file);
-    } else {
-      // Read PDF/image as base64
-      reader.onload = e => {
-        entry.base64 = e.target.result.split(',')[1];
-        entry.ready  = true;
-        renderFileList();
-      };
-      reader.onerror = () => { entry.error = true; renderFileList(); };
-      reader.readAsDataURL(file);
-    }
-  });
-  document.getElementById('file-input').value = '';
-}
-
-// Drag and drop
-function initDropZone() {
-  const zone = document.getElementById('drop-zone');
-  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault();
-    zone.classList.remove('drag-over');
-    handleFiles(e.dataTransfer.files);
-  });
-}
-
-/* ── Docx review ── */
-let docxText = '';
+let attachments  = [];
+let docxText     = '';
 let docxFileName = '';
 
-function handleDocxFile(file) {
-  if (!file) return;
-  if (!file.name.endsWith('.docx')) {
-    showErr('Por favor, selecione um arquivo .docx válido.');
-    return;
-  }
-  docxFileName = file.name;
-  const statusEl = document.getElementById('rev-file-status');
-  statusEl.innerHTML = '<div class="rev-file-ok">⏳ Lendo o documento...</div>';
+/* ── MODE CONFIG ── */
+const MODES = {
+  ata:   { label:'Ata de Reunião',               icon:'📋', desc:'Gera data, participantes, pauta, resumo por item e próximas providências.' },
+  req:   { label:'Especificação de Requisitos',  icon:'📄', desc:'Gera objetivo, RF, RNF, atores, cenário To Be e dependências críticas.' },
+  visao: { label:'Visão de Produto',             icon:'🗂️', desc:'Gera descrição do problema, stakeholders, EAP, escopo, premissas e restrições.' },
+  pop:   { label:'POP / IT',                     icon:'📑', desc:'Gera fluxo de atividades, SIPOC, fluxograma e sugestões de automação.' },
+  rev:   { label:'Revisão de Documento',         icon:'🔍', desc:'Analisa um .docx e aponta erros de português, formatação e padronização.' },
+};
 
-  const reader = new FileReader();
-  reader.onload = async e => {
-    try {
-      const arrayBuffer = e.target.result;
-      const result = await mammoth.extractRawText({ arrayBuffer });
-      docxText = result.value;
-      statusEl.innerHTML = `<div class="rev-file-ok">✅ <strong>${file.name}</strong> — ${docxText.length.toLocaleString('pt-BR')} caracteres extraídos</div>`;
-    } catch(err) {
-      statusEl.innerHTML = '<div class="rev-file-ok" style="color:#a32d2d">❌ Erro ao ler o arquivo. Certifique-se que é um .docx válido.</div>';
-    }
-  };
-  reader.readAsArrayBuffer(file);
-  document.getElementById('rev-file-input').value = '';
+/* ── SIDEBAR TOGGLE (mobile) ── */
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
 }
 
-function initRevDropZone() {
-  const zone = document.getElementById('rev-drop-zone');
-  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault();
-    zone.classList.remove('drag-over');
-    if (e.dataTransfer.files[0]) handleDocxFile(e.dataTransfer.files[0]);
-  });
-}
+/* ── SELECT MODE ── */
+function selectMode(mode) {
+  currentMode = mode;
+  const cfg = MODES[mode];
 
-function renderReviewReport(jsonData) {
-  const { resumo, erros } = jsonData;
-  const catLabel = { portugues: 'Português', formatacao: 'Formatação', padronizacao: 'Padronização' };
-  const catIcon  = { portugues: '🔤', formatacao: '📐', padronizacao: '🏷️' };
-
-  let html = `
-    <div class="review-summary">
-      <div class="review-summary-item">
-        <div class="review-summary-count" style="color:#8b1a1a">${resumo.portugues || 0}</div>
-        <div class="review-summary-label">🔤 Português</div>
-      </div>
-      <div class="review-summary-item">
-        <div class="review-summary-count" style="color:#1a3a8b">${resumo.formatacao || 0}</div>
-        <div class="review-summary-label">📐 Formatação</div>
-      </div>
-      <div class="review-summary-item">
-        <div class="review-summary-count" style="color:#2a6b10">${resumo.padronizacao || 0}</div>
-        <div class="review-summary-label">🏷️ Padronização</div>
-      </div>
-      <div class="review-summary-item">
-        <div class="review-summary-count">${(resumo.portugues||0)+(resumo.formatacao||0)+(resumo.padronizacao||0)}</div>
-        <div class="review-summary-label">Total de erros</div>
-      </div>
-    </div>
-    <div class="review-error-list">`;
-
-  erros.forEach(err => {
-    const cat = err.categoria || 'portugues';
-    html += `
-      <div class="review-error-card">
-        <div class="review-error-header">
-          <span class="cat-badge cat-${cat}">${catIcon[cat] || '•'} ${catLabel[cat] || cat}</span>
-        </div>
-        <div class="review-error-desc">${escHtml(err.descricao || '')}</div>
-        ${err.trecho_original ? `<div class="review-error-trecho">${escHtml(err.trecho_original)}</div>` : ''}
-        ${err.sugestao ? `<div class="review-error-sugestao"><strong>✅ Sugestão:</strong> ${escHtml(err.sugestao)}</div>` : ''}
-      </div>`;
+  // Nav items
+  Object.keys(MODES).forEach(m => {
+    document.getElementById('nav-' + m).classList.toggle('active', m === mode);
   });
 
-  html += '</div>';
-  return html;
+  // Topbar + page header
+  document.getElementById('topbar-title').textContent = cfg.label;
+  document.getElementById('page-title').textContent   = cfg.label;
+  document.getElementById('page-desc').textContent    = cfg.desc;
+
+  // Show/hide sections
+  const isRev = mode === 'rev';
+  document.getElementById('rev-card').style.display        = isRev ? 'block' : 'none';
+  document.getElementById('transcript-card').style.display = isRev ? 'none'  : 'block';
+  document.getElementById('attachments-card').style.display= isRev ? 'none'  : 'block';
+  document.getElementById('run-btn').textContent = isRev ? 'Revisar documento →' : 'Analisar transcrição →';
+
+  // Close sidebar on mobile
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
 }
 
-function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-/* ── API Key ── */
+/* ── API KEY ── */
 function loadKey() {
   const k = localStorage.getItem('anthropic_api_key') || '';
-  if (k) {
-    document.getElementById('api-key-input').value = k;
-    setKeyStatus(true);
-  }
+  if (k) { document.getElementById('api-key-input').value = k; setKeyStatus(true); }
 }
-
 function saveKey() {
   const k = document.getElementById('api-key-input').value.trim();
-  if (!k) { alert('Digite a chave antes de salvar.'); return; }
+  if (!k) return;
   localStorage.setItem('anthropic_api_key', k);
   setKeyStatus(true);
 }
-
 function setKeyStatus(ok) {
   const el = document.getElementById('key-status');
-  el.textContent = ok ? 'Configurada ✓' : 'Não configurada';
-  el.className = 'api-key-status ' + (ok ? 'ok' : 'missing');
+  el.className = 'api-status ' + (ok ? 'ok' : 'miss');
+  el.innerHTML = `<div class="api-status-dot"></div><span>${ok ? 'Configurada' : 'Não configurada'}</span>`;
 }
-
 function getKey() {
-  return (document.getElementById('api-key-input').value.trim() ||
-          localStorage.getItem('anthropic_api_key') || '');
+  return document.getElementById('api-key-input').value.trim() || localStorage.getItem('anthropic_api_key') || '';
 }
 
-/* ── Mode ── */
-function selectMode(mode) {
-  currentMode = mode;
-  ['ata','req','visao','pop','rev'].forEach(m => {
-    document.getElementById('card-'  + m).classList.toggle('active', m === mode);
-    document.getElementById('check-' + m).textContent = m === mode ? '✓' : '';
-  });
-  const isRev = mode === 'rev';
-  document.getElementById('transcript-card').style.display  = isRev ? 'none' : 'block';
-  document.getElementById('attachments-card').style.display = isRev ? 'none' : 'block';
-  document.getElementById('rev-card').style.display         = isRev ? 'block' : 'none';
-  document.getElementById('run-btn').textContent = isRev
-    ? 'Revisar documento →'
-    : 'Analisar transcrição e anexos →';
-}
+/* ── HELPERS ── */
+function show(id){ document.getElementById(id).style.display='block' }
+function hide(id){ document.getElementById(id).style.display='none' }
+function addCls(id,c){ document.getElementById(id).classList.add(c) }
+function remCls(id,c){ document.getElementById(id).classList.remove(c) }
+function showErr(msg){ const e=document.getElementById('error-bar'); e.textContent=msg; e.classList.add('visible') }
+function hideErr(){ document.getElementById('error-bar').classList.remove('visible') }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+function formatSize(b){ if(b<1024)return b+' B'; if(b<1048576)return(b/1024).toFixed(1)+' KB'; return(b/1048576).toFixed(1)+' MB' }
 
-/* ── Char counter ── */
 function updateCount(el) {
   const n = el.value.length;
   const out = document.getElementById('char-count');
   out.textContent = n.toLocaleString('pt-BR') + ' caracteres';
-  out.className   = 'char-count' + (n > 80000 ? ' warn' : '');
+  out.className = 'char-count' + (n > 80000 ? ' warn' : '');
 }
-
-/* ── Helpers ── */
-function show(id)  { document.getElementById(id).style.display = 'block'; }
-function hide(id)  { document.getElementById(id).style.display = 'none';  }
-function addCls(id, c)  { document.getElementById(id).classList.add(c); }
-function remCls(id, c)  { document.getElementById(id).classList.remove(c); }
-function showErr(msg) {
-  const el = document.getElementById('error-bar');
-  el.textContent = msg;
-  el.classList.add('visible');
-}
-function hideErr() { document.getElementById('error-bar').classList.remove('visible'); }
 
 function renderMd(md) {
-  if (typeof marked !== 'undefined') {
-    try { return marked.parse(md); } catch(e) {}
-  }
-  return md
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
-    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,'<em>$1</em>')
-    .replace(/^[-•] (.+)$/gm,'<li>$1</li>')
-    .replace(/^(\d+)\. (.+)$/gm,'<li>$2</li>')
-    .replace(/\n/g,'<br>');
+  if (typeof marked !== 'undefined') { try { return marked.parse(md); } catch(e){} }
+  return md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
 }
 
-/* ── Loading messages ── */
-const loadingMsgs = [
-  'Lendo a transcrição...',
-  'Identificando participantes e pauta...',
-  'Extraindo pontos-chave...',
-  'Estruturando o documento...',
-  'Revisando e refinando...',
-  'Finalizando a análise...'
-];
-
-/* ── Main ── */
-async function runAnalysis() {
-  const transcript = document.getElementById('transcript').value.trim();
-  const apiKey     = getKey();
-
-  if (!apiKey) {
-    showErr('Configure sua chave de API da Anthropic antes de continuar.');
-    return;
-  }
-
-  // Rev mode validation
-  if (currentMode === 'rev') {
-    if (!docxText) {
-      showErr('Faça o upload de um arquivo .docx antes de continuar.');
-      return;
+/* ── ATTACHMENTS ── */
+function fileIcon(type, name) {
+  if (type === 'application/pdf') return '📄';
+  if (type.startsWith('image/')) return '🖼️';
+  if (type.includes('spreadsheet') || type.includes('excel') || (name&&(name.endsWith('.xlsx')||name.endsWith('.xls')))) return '📊';
+  return '📎';
+}
+function isExcel(file) {
+  return file.type.includes('spreadsheet') || file.type.includes('excel') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+}
+function excelToText(buf, fname) {
+  const wb = XLSX.read(buf,{type:'array'});
+  let r = `## Planilha: ${fname}\n\n`;
+  wb.SheetNames.forEach(s=>{ const csv=XLSX.utils.sheet_to_csv(wb.Sheets[s],{skipHidden:true}); if(csv.trim()) r+=`### Aba: ${s}\n\`\`\`\n${csv}\n\`\`\`\n\n`; });
+  return r;
+}
+function renderFileList() {
+  const el = document.getElementById('file-list');
+  if (!attachments.length) { el.innerHTML=''; return; }
+  el.innerHTML = '<div class="file-list">' + attachments.map((f,i)=>`
+    <div class="file-item ${f.ready?'ready':f.error?'error':'loading'}">
+      <span class="file-item-icon">${fileIcon(f.type,f.name)}</span>
+      <span class="file-item-name" title="${f.name}">${f.name}</span>
+      <span class="file-item-size">${formatSize(f.size)}</span>
+      <button class="file-item-remove" onclick="removeFile(${i})">×</button>
+    </div>`).join('') + '</div>';
+}
+function removeFile(i){ attachments.splice(i,1); renderFileList(); }
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    const allowed=['application/pdf','image/png','image/jpeg','image/webp','image/gif'];
+    const excel = isExcel(file);
+    if (!allowed.includes(file.type) && !excel) { showErr('Tipo não suportado: '+file.name); return; }
+    if (file.size > 20*1024*1024) { showErr('Arquivo muito grande: '+file.name+' (máx 20MB)'); return; }
+    const entry = {name:file.name,size:file.size,type:file.type,base64:null,textContent:null,isExcel:excel,ready:false,error:false};
+    attachments.push(entry); renderFileList();
+    const reader = new FileReader();
+    if (excel) {
+      reader.onload = e => { try{ entry.textContent=excelToText(e.target.result,file.name); entry.ready=true; }catch(err){ entry.error=true; } renderFileList(); };
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.onload = e => { entry.base64=e.target.result.split(',')[1]; entry.ready=true; renderFileList(); };
+      reader.readAsDataURL(file);
     }
-    hideErr();
-    hide('input-section');
-    addCls('loading-screen', 'visible');
-    remCls('result-screen', 'visible');
+  });
+  document.getElementById('file-input').value='';
+}
+function initDropZone() {
+  const z = document.getElementById('drop-zone');
+  z.addEventListener('dragover', e=>{ e.preventDefault(); z.classList.add('drag-over'); });
+  z.addEventListener('dragleave', ()=>z.classList.remove('drag-over'));
+  z.addEventListener('drop', e=>{ e.preventDefault(); z.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+}
 
-    let ltIdx = 0;
-    const ltTimer = setInterval(() => {
-      ltIdx = (ltIdx + 1) % loadingMsgs.length;
-      document.getElementById('loading-title').textContent = loadingMsgs[ltIdx];
-    }, 4000);
-
+/* ── DOCX REVIEW ── */
+function handleDocxFile(file) {
+  if (!file) return;
+  if (!file.name.endsWith('.docx')) { showErr('Selecione um arquivo .docx válido.'); return; }
+  docxFileName = file.name;
+  const s = document.getElementById('rev-file-status');
+  s.innerHTML = '<div class="rev-file-ok">⏳ Lendo o documento...</div>';
+  const reader = new FileReader();
+  reader.onload = async e => {
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 8000,
-          system: `Você é um revisor especialista em documentos técnicos e de negócio em português do Brasil. Analise o documento enviado e retorne SOMENTE um JSON válido, sem nenhum texto antes ou depois, sem blocos de código markdown, com a seguinte estrutura: { "resumo": { "portugues": N, "formatacao": N, "padronizacao": N }, "erros": [ { "categoria": "portugues" | "formatacao" | "padronizacao", "descricao": "...", "trecho_original": "...", "sugestao": "..." } ] }. Seja preciso, não invente erros que não existam, e priorize os mais impactantes.`,
-          messages: [{ role: 'user', content: `## DOCUMENTO PARA REVISÃO: ${docxFileName}\n\n${docxText}` }]
+      const result = await mammoth.extractRawText({arrayBuffer: e.target.result});
+      docxText = result.value;
+      s.innerHTML = `<div class="rev-file-ok">✅ <strong>${file.name}</strong> — ${docxText.length.toLocaleString('pt-BR')} caracteres extraídos</div>`;
+    } catch(err) {
+      s.innerHTML = '<div class="rev-file-ok" style="color:#fca5a5">❌ Erro ao ler o arquivo.</div>';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  document.getElementById('rev-file-input').value='';
+}
+function initRevDropZone() {
+  const z = document.getElementById('rev-drop-zone');
+  z.addEventListener('dragover', e=>{ e.preventDefault(); z.classList.add('drag-over'); });
+  z.addEventListener('dragleave', ()=>z.classList.remove('drag-over'));
+  z.addEventListener('drop', e=>{ e.preventDefault(); z.classList.remove('drag-over'); if(e.dataTransfer.files[0]) handleDocxFile(e.dataTransfer.files[0]); });
+}
+
+/* ── REVIEW REPORT RENDER ── */
+function renderReviewReport(json) {
+  const {resumo,erros} = json;
+  const catLabel = {portugues:'Português',formatacao:'Formatação',padronizacao:'Padronização'};
+  const catIcon  = {portugues:'🔤',formatacao:'📐',padronizacao:'🏷️'};
+  const catColor = {portugues:'#ef4444',formatacao:'#4f8ef7',padronizacao:'#22c55e'};
+  const total = (resumo.portugues||0)+(resumo.formatacao||0)+(resumo.padronizacao||0);
+  let html = `<div class="review-summary">
+    <div class="review-stat"><div class="review-stat-num" style="color:${catColor.portugues}">${resumo.portugues||0}</div><div class="review-stat-label">🔤 Português</div></div>
+    <div class="review-stat"><div class="review-stat-num" style="color:${catColor.formatacao}">${resumo.formatacao||0}</div><div class="review-stat-label">📐 Formatação</div></div>
+    <div class="review-stat"><div class="review-stat-num" style="color:${catColor.padronizacao}">${resumo.padronizacao||0}</div><div class="review-stat-label">🏷️ Padronização</div></div>
+    <div class="review-stat"><div class="review-stat-num">${total}</div><div class="review-stat-label">Total de erros</div></div>
+  </div><div class="review-error-list">`;
+  erros.forEach(err=>{
+    const cat = err.categoria||'portugues';
+    html+=`<div class="review-error-card">
+      <div class="review-error-header"><span class="cat-badge cat-${cat}">${catIcon[cat]||'•'} ${catLabel[cat]||cat}</span></div>
+      <div class="review-error-desc">${escHtml(err.descricao||'')}</div>
+      ${err.trecho_original?`<div class="review-error-trecho">${escHtml(err.trecho_original)}</div>`:''}
+      ${err.sugestao?`<div class="review-error-sugestao"><strong>✅ Sugestão:</strong> ${escHtml(err.sugestao)}</div>`:''}
+    </div>`;
+  });
+  return html + '</div>';
+}
+
+/* ── LOADING STEPS ── */
+const loadingMsgs = ['Lendo conteúdo...','Identificando participantes...','Extraindo pontos-chave...','Estruturando documento...','Finalizando...'];
+let loadingStep = 0, loadingTimer = null;
+function startLoadingSteps() {
+  loadingStep = 0;
+  document.querySelectorAll('.loading-step').forEach((el,i)=>el.classList.toggle('active',i===0));
+  loadingTimer = setInterval(()=>{
+    loadingStep = (loadingStep+1) % 5;
+    document.querySelectorAll('.loading-step').forEach((el,i)=>el.classList.toggle('active',i===loadingStep));
+    document.getElementById('loading-title').textContent = loadingMsgs[loadingStep];
+  }, 3500);
+}
+function stopLoadingSteps() { clearInterval(loadingTimer); }
+
+/* ── RUN ANALYSIS ── */
+async function runAnalysis() {
+  const apiKey = getKey();
+  if (!apiKey) { showErr('Configure sua chave de API da Anthropic antes de continuar.'); return; }
+  hideErr();
+
+  /* ── REV MODE ── */
+  if (currentMode === 'rev') {
+    if (!docxText) { showErr('Faça o upload de um arquivo .docx antes de continuar.'); return; }
+    hide('input-section'); addCls('loading-screen','visible'); remCls('result-screen','visible');
+    startLoadingSteps();
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({
+          model:'claude-haiku-4-5-20251001', max_tokens:8000,
+          system:`Você é um revisor especialista em documentos técnicos e de negócio em português do Brasil. Analise o documento enviado e retorne SOMENTE um JSON válido, sem nenhum texto antes ou depois, sem blocos de código markdown, com a seguinte estrutura: { "resumo": { "portugues": N, "formatacao": N, "padronizacao": N }, "erros": [ { "categoria": "portugues" | "formatacao" | "padronizacao", "descricao": "...", "trecho_original": "...", "sugestao": "..." } ] }. Seja preciso, não invente erros que não existam, e priorize os mais impactantes.`,
+          messages:[{role:'user',content:`## DOCUMENTO PARA REVISÃO: ${docxFileName}\n\n${docxText}`}]
         })
       });
-
-      clearInterval(ltTimer);
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message || 'Erro HTTP ' + res.status);
-      }
-
+      stopLoadingSteps();
+      if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||'Erro HTTP '+res.status); }
       const data = await res.json();
-      const rawText = (data.content || []).map(b => b.text || '').join('').trim();
+      const rawText = (data.content||[]).map(b=>b.text||'').join('').trim();
       rawMarkdown = rawText;
-
-      const inTok  = data.usage?.input_tokens  || 0;
-      const outTok = data.usage?.output_tokens || 0;
-
+      const inTok=data.usage?.input_tokens||0, outTok=data.usage?.output_tokens||0;
       document.getElementById('result-badge').textContent = '🔍 Revisão de Documento';
-      document.getElementById('token-row').innerHTML =
-        `<span class="token-pill">${inTok.toLocaleString('pt-BR')} tokens entrada</span>` +
-        `<span class="token-pill">${outTok.toLocaleString('pt-BR')} tokens saída</span>`;
-
-      // Try to parse JSON and render visual report
-      try {
-        const clean = rawText.replace(/```json|```/g,'').trim();
-        const parsed = JSON.parse(clean);
-        document.getElementById('result-content').innerHTML = renderReviewReport(parsed);
-      } catch(e) {
-        document.getElementById('result-content').innerHTML = renderMd(rawText);
-      }
-
-      remCls('loading-screen', 'visible');
-      addCls('result-screen', 'visible');
-
-    } catch(e) {
-      clearInterval(ltTimer);
-      remCls('loading-screen', 'visible');
-      show('input-section');
-      showErr('Erro ao processar: ' + e.message);
-    }
-    return;
-  }
-  if (!transcript && attachments.length === 0) {
-    showErr('Cole a transcrição da reunião ou adicione ao menos um anexo.');
-    return;
-  }
-  if (transcript && transcript.length < 50) {
-    showErr('A transcrição parece muito curta. Cole o texto completo da reunião.');
+      document.getElementById('token-row').innerHTML = `<span class="token-pill">${inTok.toLocaleString('pt-BR')} tokens entrada</span><span class="token-pill">${outTok.toLocaleString('pt-BR')} tokens saída</span>`;
+      try { const parsed=JSON.parse(rawText.replace(/```json|```/g,'').trim()); document.getElementById('result-content').innerHTML=renderReviewReport(parsed); }
+      catch(e) { document.getElementById('result-content').innerHTML=renderMd(rawText); }
+      remCls('loading-screen','visible'); addCls('result-screen','visible');
+    } catch(e) { stopLoadingSteps(); remCls('loading-screen','visible'); show('input-section'); showErr('Erro: '+e.message); }
     return;
   }
 
-  // Check if any attachment is still loading
-  const pending = attachments.filter(f => !f.ready && !f.error);
-  if (pending.length > 0) {
-    showErr('Aguarde o carregamento dos anexos antes de continuar.');
-    return;
-  }
+  /* ── TRANSCRIPT MODES ── */
+  const transcript = document.getElementById('transcript').value.trim();
+  if (!transcript && !attachments.length) { showErr('Cole a transcrição ou adicione ao menos um anexo.'); return; }
+  if (attachments.filter(f=>!f.ready&&!f.error).length) { showErr('Aguarde o carregamento dos anexos.'); return; }
 
-  hideErr();
-  hide('input-section');
-  addCls('loading-screen', 'visible');
-  remCls('result-screen', 'visible');
+  hide('input-section'); addCls('loading-screen','visible'); remCls('result-screen','visible');
+  startLoadingSteps();
 
-  let ltIdx = 0;
-  const ltTimer = setInterval(() => {
-    ltIdx = (ltIdx + 1) % loadingMsgs.length;
-    document.getElementById('loading-title').textContent = loadingMsgs[ltIdx];
-  }, 4000);
-
-  const systemPrompt = currentMode === 'ata' ? PROMPT_ATA :
-                       currentMode === 'req' ? PROMPT_REQ :
-                       currentMode === 'visao' ? PROMPT_VISAO : PROMPT_POP;
-
-  // Build message content array
-  const contentParts = [];
-
-  // Add transcript text if provided
-  if (transcript) {
-    contentParts.push({
-      type: 'text',
-      text: '## TRANSCRIÇÃO DA REUNIÃO:\n\n' + transcript
-    });
-  }
-
-  // Add attachments
-  const readyAttachments = attachments.filter(f => f.ready && f.base64);
-  if (readyAttachments.length > 0) {
-    if (transcript) {
-      contentParts.push({ type: 'text', text: '\n\n## ANEXOS DA REUNIÃO:\nOs arquivos abaixo foram anexados e devem ser considerados na análise junto com a transcrição.' });
-    } else {
-      contentParts.push({ type: 'text', text: '## ANEXOS DA REUNIÃO:\nAnalise os arquivos abaixo e gere o documento solicitado com base no conteúdo encontrado.' });
-    }
-
-    readyAttachments.forEach((f, i) => {
-      contentParts.push({ type: 'text', text: `\n### Anexo ${i + 1}: ${f.name}` });
-      if (f.isExcel && f.textContent) {
-        // Excel converted to text/CSV
-        contentParts.push({ type: 'text', text: f.textContent });
-      } else if (f.type === 'application/pdf') {
-        contentParts.push({
-          type: 'document',
-          source: { type: 'base64', media_type: 'application/pdf', data: f.base64 }
-        });
-      } else {
-        contentParts.push({
-          type: 'image',
-          source: { type: 'base64', media_type: f.type, data: f.base64 }
-        });
-      }
+  const sysPrompt = currentMode==='ata'?PROMPT_ATA:currentMode==='req'?PROMPT_REQ:currentMode==='visao'?PROMPT_VISAO:PROMPT_POP;
+  const parts = [];
+  if (transcript) parts.push({type:'text',text:'## TRANSCRIÇÃO DA REUNIÃO:\n\n'+transcript});
+  const ready = attachments.filter(f=>f.ready);
+  if (ready.length) {
+    parts.push({type:'text',text:(transcript?'\n\n':'')+'## ANEXOS:\n'});
+    ready.forEach((f,i)=>{
+      parts.push({type:'text',text:`\n### Anexo ${i+1}: ${f.name}`});
+      if (f.isExcel&&f.textContent) parts.push({type:'text',text:f.textContent});
+      else if (f.type==='application/pdf') parts.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:f.base64}});
+      else parts.push({type:'image',source:{type:'base64',media_type:f.type,data:f.base64}});
     });
   }
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key':    apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model:      'claude-haiku-4-5-20251001',
-        max_tokens: 8000,
-        system:     systemPrompt,
-        messages: [{ role: 'user', content: contentParts }]
-      })
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:8000,system:sysPrompt,messages:[{role:'user',content:parts}]})
     });
+    stopLoadingSteps();
+    if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||'Erro HTTP '+res.status); }
+    const data = await res.json();
+    rawMarkdown = (data.content||[]).map(b=>b.text||'').join('');
+    const inTok=data.usage?.input_tokens||0, outTok=data.usage?.output_tokens||0;
+    const cfg = MODES[currentMode];
+    document.getElementById('result-badge').textContent = cfg.icon+' '+cfg.label;
+    document.getElementById('token-row').innerHTML = `<span class="token-pill">${inTok.toLocaleString('pt-BR')} tokens entrada</span><span class="token-pill">${outTok.toLocaleString('pt-BR')} tokens saída</span>`;
 
-    clearInterval(ltTimer);
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const msg = err?.error?.message || 'Erro HTTP ' + res.status;
-      throw new Error(msg);
+    // Special handling for visao mode — parse JSON and render structured preview + docx button
+    if (currentMode === 'visao') {
+      try {
+        const clean = rawMarkdown.replace(/```json|```/g,'').trim();
+        visaoJsonData = JSON.parse(clean);
+        document.getElementById('result-content').innerHTML = renderVisaoPreview(visaoJsonData);
+        // Show docx download button
+        document.getElementById('result-actions-area').innerHTML = `
+          <button class="action-btn" onclick="copyResult()">Copiar JSON</button>
+          <button class="action-btn primary" onclick="downloadVisaoDocx()">↓ Baixar .docx</button>`;
+      } catch(e) {
+        visaoJsonData = null;
+        document.getElementById('result-content').innerHTML = renderMd(rawMarkdown);
+        document.getElementById('result-actions-area').innerHTML = `
+          <button class="action-btn" onclick="copyResult()">Copiar</button>
+          <button class="action-btn primary" onclick="downloadResult()">↓ Baixar .md</button>`;
+      }
+    } else {
+      visaoJsonData = null;
+      document.getElementById('result-content').innerHTML = renderMd(rawMarkdown);
+      const showTJ = (currentMode === 'ata' || currentMode === 'req');
+      const tjBtn  = showTJ ? `<button class="action-btn tj" onclick="openTJModal()">🏛️ Padrão TJ-RO</button>` : '';
+      document.getElementById('result-actions-area').innerHTML = `
+        <button class="action-btn" onclick="copyResult()">Copiar</button>
+        ${tjBtn}
+        <button class="action-btn primary" onclick="downloadResult()">↓ Baixar .md</button>`;
     }
 
-    const data = await res.json();
-    rawMarkdown  = (data.content || []).map(b => b.text || '').join('');
+    remCls('loading-screen','visible'); addCls('result-screen','visible');
+  } catch(e) { stopLoadingSteps(); remCls('loading-screen','visible'); show('input-section'); showErr('Erro: '+e.message); }
+}
 
-    const inTok  = data.usage?.input_tokens  || 0;
-    const outTok = data.usage?.output_tokens || 0;
+/* ── VISAO PREVIEW RENDER ── */
+function renderVisaoPreview(f) {
+  const sec = (title, content) => content && content !== 'Não identificado na transcrição'
+    ? `<h2>${title}</h2><p>${escHtml(content).replace(/;\s*/g,'<br>• ')}</p>` : '';
+  return `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12px;">
+      <div><span style="color:var(--text3)">Produto</span><br><strong>${escHtml(f.nome_produto||'—')}</strong></div>
+      <div><span style="color:var(--text3)">Nº OS</span><br><strong>${escHtml(f.numero_os||'—')}</strong></div>
+      <div><span style="color:var(--text3)">Analista</span><br><strong>${escHtml(f.analista||'—')}</strong></div>
+    </div>
+    ${sec('1. DESCRIÇÃO DO PROBLEMA', f.descricao_problema)}
+    ${sec('2. IMPACTADOS', f.impactados)}
+    ${sec('3. IMPACTO DO PROBLEMA', f.impacto)}
+    ${sec('4. BENEFÍCIOS ESPERADOS', f.beneficios)}
+    ${sec('5. OBJETIVO DO PRODUTO', f.objetivo)}
+    ${sec('6. PÚBLICO-ALVO', f.publico_alvo)}
+    ${sec('7. UNIDADES ENVOLVIDAS', f.unidades)}
+    ${sec('8. EQUIPE', f.equipe)}
+    ${sec('9. VISÃO DO PRODUTO (EAP)', f.visao_produto)}
+    ${sec('10. ESCOPO DO PRODUTO', f.escopo)}
+    ${sec('11. NÃO ESCOPO', f.nao_escopo)}
+    ${sec('12. INTEGRAÇÕES NECESSÁRIAS', f.integracoes)}
+    ${sec('13. RISCOS DAS INTEGRAÇÕES', f.riscos_integracao)}
+    ${sec('14. PREMISSAS', f.premissas)}
+    ${sec('15. RESTRIÇÕES', f.restricoes)}
+    ${sec('16. LEGISLAÇÃO', f.legislacao)}
+    ${sec('17. REFERÊNCIAS', f.referencias)}
+  `;
+}
 
-    /* Badge */
-    document.getElementById('result-badge').textContent =
-      currentMode === 'ata'   ? '📋 Ata de Reunião' :
-      currentMode === 'req'   ? '📄 Especificação de Requisitos' :
-      currentMode === 'visao' ? '🗂️ Visão de Produto' :
-      currentMode === 'pop'   ? '📑 POP / IT' :
-                                '🔍 Revisão de Documento';
+/* ── VISAO DOCX GENERATION ── */
+let visaoJsonData = null;
 
-    /* Token info */
-    document.getElementById('token-row').innerHTML =
-      `<span class="token-pill">${inTok.toLocaleString('pt-BR')} tokens entrada</span>` +
-      `<span class="token-pill">${outTok.toLocaleString('pt-BR')} tokens saída</span>`;
+// Template docx embedded as base64 — loaded from server
+const TEMPLATE_B64 = '__TEMPLATE_B64__';
 
-    /* Render markdown */
-    document.getElementById('result-content').innerHTML = renderMd(rawMarkdown);
+function xmlEsc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
 
-    remCls('loading-screen', 'visible');
-    addCls('result-screen',  'visible');
+// Convert multiline text to Word XML paragraphs
+function toParas(text, styleId) {
+  const style = styleId ? `<w:pStyle w:val="${styleId}"/>` : '';
+  return String(text||'').split(/\n|;\s*/).filter(l=>l.trim()).map(line =>
+    `<w:p><w:pPr><w:pStyle w:val="ListParagraph"/></w:pPr><w:r><w:t xml:space="preserve">${xmlEsc(line.trim())}</w:t></w:r></w:p>`
+  ).join('') || `<w:p><w:r><w:t></w:t></w:r></w:p>`;
+}
 
+function toSinglePara(text) {
+  return `<w:p><w:r><w:t xml:space="preserve">${xmlEsc(text||'')}</w:t></w:r></w:p>`;
+}
+
+async function generateVisaoDocx(fields) {
+  // Decode template
+  const binStr = atob(TEMPLATE_B64);
+  const bytes = new Uint8Array(binStr.length);
+  for (let i=0;i<binStr.length;i++) bytes[i]=binStr.charCodeAt(i);
+
+  const zip = await JSZip.loadAsync(bytes.buffer);
+  let xml = await zip.file('word/document.xml').async('string');
+
+  // Helper: replace a placeholder text node with new content
+  function rep(placeholder, replacement) {
+    xml = xml.split(xmlEsc(placeholder)).join(replacement);
+    xml = xml.split(placeholder).join(replacement);
+  }
+
+  rep('Sistema de [descrição]', xmlEsc(fields.nome_produto || 'Sistema'));
+  rep('Explicar qual é o problema enfrentado pelo solicitante;', xmlEsc(fields.descricao_problema || ''));
+  rep('Quais pessoas são impactadas pelo problema;', xmlEsc(fields.impactados || ''));
+  rep('Qual é o impacto deste problema (para o judiciário, para a sociedade, Prêmio CNJ, etc).', xmlEsc(fields.impacto || ''));
+  rep('Listar quais benefícios serão obtidos com a entrega do produto.', xmlEsc(fields.beneficios || ''));
+  rep('Descrever resumidamente o principal objetivo do sistema/produto a ser entregue.', xmlEsc(fields.objetivo || ''));
+  rep('Público-alvo;', xmlEsc(fields.publico_alvo || ''));
+  rep('Unidades envolvidas;', xmlEsc(fields.unidades || ''));
+  rep('Equipe e etc.', xmlEsc(fields.equipe || ''));
+  rep('Elaborar um fluxograma com a visão geral do produto', xmlEsc(fields.visao_produto || ''));
+  rep('listar as funcionalidades essenciais para que o sistema resolva o problema do cliente', xmlEsc(fields.escopo || ''));
+  rep('Listar funcionalidades e/ou integrações que não serão desenvolvidas durante o projeto', xmlEsc(fields.nao_escopo || ''));
+  rep('Listar as integrações necessárias para o funcionamento do produto.', xmlEsc(fields.integracoes || ''));
+  rep('Listar os riscos de cada integração.', xmlEsc(fields.riscos_integracao || ''));
+  rep('Listar condições essenciais para que o projeto alcance o resultado esperado.', xmlEsc(fields.premissas || ''));
+  rep('Listar restrições do projeto (ex.: a equipe desenvolvedora poderá atuar neste projeto durante 3 meses)', xmlEsc(fields.restricoes || ''));
+  rep('Listar Instruções normativas/ legislações que são obrigatórias a serem seguidas.', xmlEsc(fields.legislacao || ''));
+  rep('Listar referências de sistemas parecidos ou que contenham funcionalidades parecidas ', xmlEsc(fields.referencias || ''));
+  rep('DD/MM/AAAA', xmlEsc(fields.data_doc || new Date().toLocaleDateString('pt-BR')));
+
+  zip.file('word/document.xml', xml);
+  const blob = await zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  return blob;
+}
+
+async function downloadVisaoDocx() {
+  if (!visaoJsonData) return;
+  try {
+    const btn = event.target;
+    btn.textContent = '⏳ Gerando...';
+    btn.disabled = true;
+    const blob = await generateVisaoDocx(visaoJsonData);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'visao-do-produto.docx';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    btn.textContent = '↓ Baixar .docx';
+    btn.disabled = false;
   } catch(e) {
-    clearInterval(ltTimer);
-    remCls('loading-screen', 'visible');
-    show('input-section');
-    showErr('Erro ao processar: ' + e.message);
+    console.error(e);
+    event.target.textContent = 'Erro ao gerar .docx';
   }
 }
 
-/* ── Actions ── */
+/* ── ACTIONS ── */
 function copyResult() {
-  navigator.clipboard.writeText(rawMarkdown).then(() => {
-    const btn = document.activeElement;
-    const orig = btn.textContent;
-    btn.textContent = 'Copiado!';
-    setTimeout(() => { btn.textContent = orig; }, 2000);
+  navigator.clipboard.writeText(rawMarkdown).then(()=>{
+    const btn=document.activeElement; const orig=btn.textContent;
+    btn.textContent='Copiado!'; setTimeout(()=>btn.textContent=orig,2000);
   });
 }
-
 function downloadResult() {
-  const fname = currentMode === 'ata'   ? 'ata-reuniao.md' :
-                currentMode === 'req'   ? 'especificacao-requisitos.md' :
-                currentMode === 'visao' ? 'visao-de-produto.md' :
-                currentMode === 'pop'   ? 'pop-it.md' :
-                                          'revisao-documento.json';
-  const blob  = new Blob([rawMarkdown], { type: 'text/markdown;charset=utf-8' });
-  const url   = URL.createObjectURL(blob);
-  const a     = document.createElement('a');
-  a.href = url; a.download = fname;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const fnames={ata:'ata-reuniao.md',req:'especificacao-requisitos.md',visao:'visao-de-produto.md',pop:'pop-it.md',rev:'revisao-documento.json'};
+  const blob=new Blob([rawMarkdown],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=fnames[currentMode]||'documento.md';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
-
 function resetApp() {
-  rawMarkdown  = '';
-  attachments  = [];
-  docxText     = '';
-  docxFileName = '';
-  document.getElementById('rev-file-status').innerHTML = '';
-  renderFileList();
-  remCls('result-screen', 'visible');
-  show('input-section');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  rawMarkdown=''; attachments=[]; docxText=''; docxFileName='';
+  document.getElementById('rev-file-status').innerHTML='';
+  document.getElementById('transcript').value='';
+  document.getElementById('char-count').textContent='0 caracteres';
+  renderFileList(); remCls('result-screen','visible'); show('input-section');
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
-/* ── Init ── */
+/* ── TJ-RO PADRÃO ── */
+
+const PROMPT_TJ_ATA = `Você é um assistente que formata documentos de ata de reunião no padrão oficial do TJ-RO.
+
+Receberá uma ata de reunião já preenchida e sua tarefa é APENAS reformatá-la no padrão abaixo, sem alterar nenhum conteúdo.
+
+REGRAS:
+- Não altere nenhuma informação, nome, decisão ou texto
+- Apenas reorganize no formato padrão abaixo
+- Não adicione, invente ou expanda nenhuma informação
+- Não use travessões (—); use vírgulas, parênteses ou hífen
+
+FORMATO PADRÃO DE SAÍDA (Markdown):
+
+# ATA DE REUNIÃO
+
+## IDENTIFICAÇÃO DA REUNIÃO
+
+| Campo | Valor |
+|---|---|
+| Data | [data] |
+| Horário Início | [horário] (BSB) |
+| Horário Término | [horário] (BSB) |
+| Órgão | TJ-RO |
+| Local | [local] |
+
+## ASSUNTOS TRATADOS (ITENS DE PAUTA)
+
+[lista numerada dos itens]
+
+## PARTICIPANTES
+
+| Nome | Órgão/Empresa | E-mail |
+|---|---|---|
+| [nome] | [empresa] | [email ou vazio] |
+
+## DESENVOLVIMENTO DA PAUTA
+
+| Item | Pauta | Posicionamento |
+|---|---|---|
+| 1) | [título do item] | [posicionamento em bullet points com "-"] |
+
+## PRÓXIMAS PROVIDÊNCIAS
+
+| Nº | Providência/Atividade | Responsável | Data Limite |
+|---|---|---|---|
+| 1 | [ação] | [responsável] | [prazo] |
+
+---
+*O "de Acordo" ou "solicitação de ajuste" dos itens de pauta discutidos, bem como das soluções definidas, deverá ser evidenciado no corpo do e-mail de envio desta ata no prazo máximo de 48h. Após este período, não havendo nenhum tipo de manifestação por parte dos presentes, a referida ata será considerada "Aprovada".*`;
+
+const PROMPT_TJ_REQ = `Você é um assistente que formata documentos de levantamento de requisitos no padrão oficial do TJ-RO.
+
+Receberá um documento de requisitos já preenchido e sua tarefa é APENAS reformatá-lo no padrão abaixo, sem alterar nenhum conteúdo.
+
+REGRAS:
+- Não altere nenhuma informação, RF, RNF, regra negocial ou texto
+- Apenas reorganize no formato padrão abaixo
+- Não adicione, invente ou expanda nenhuma informação
+- Não use travessões (—); use vírgulas, parênteses ou hífen
+
+FORMATO PADRÃO DE SAÍDA (Markdown):
+
+# Levantamento de Requisitos
+## [Título da Demanda]
+
+---
+
+## Ficha Técnica
+
+| Campo | Valor |
+|---|---|
+| Área Demandante | [área] |
+| Sistema | [sistema] |
+| Nº OS | [número ou "A definir"] |
+| Analista de Negócios | [analista ou "A definir"] |
+
+**Resumo da Demanda:**
+[resumo em 2-3 linhas]
+
+**Usuários Impactados:**
+[usuários/setores impactados]
+
+**Caminho/Tela:**
+[telas ou sistemas envolvidos]
+
+---
+
+## 1. VISÃO DO PRODUTO
+
+[objetivo e contexto do produto em parágrafos curtos]
+
+## 2. SITUAÇÃO ATUAL
+
+[como funciona hoje e qual é o problema]
+
+### 2.1 Fluxo Atual
+
+[etapas do fluxo atual, em bullet points organizados por etapa]
+
+## 3. CENÁRIO PROPOSTO
+
+[o que muda, organizado por tela ou funcionalidade]
+
+### 3.1 Fluxo Proposto
+
+[etapas do fluxo proposto em bullet points]
+
+## 4. BENEFÍCIOS DO CENÁRIO PROPOSTO
+
+[lista de benefícios]
+
+## 5. REQUISITOS FUNCIONAIS
+
+[RFs agrupados por tela/funcionalidade, numerados RF01, RF02...]
+
+**[Nome da Tela/Funcionalidade]:**
+- RF01 - [descrição direta do requisito]
+- RF02 - [descrição direta do requisito]
+
+## 6. REQUISITOS NÃO FUNCIONAIS
+
+[máximo 4 RNFs, numerados RNF01, RNF02...]
+
+- RNF01 - [descrição]. Justificativa: [razão objetiva]
+
+## 7. REFERÊNCIAS
+
+[referências e sistemas relacionados, ou "Não identificado"]
+
+## 8. CONSIDERAÇÕES FINAIS
+
+[apenas uma ou duas linhas de encerramento]`;
+
+let tjFormattedMd = '';
+let tjIsLoading   = false;
+
+function openTJModal() {
+  tjFormattedMd = '';
+  document.getElementById('tj-modal-sub').textContent = 'O documento gerado será formatado conforme o modelo oficial do TJ-RO. Escolha o formato para download.';
+  const btns = document.getElementById('tj-modal-btns');
+  btns.innerHTML = `
+    <button class="tj-dl-btn" id="tj-btn-docx" onclick="downloadTJDocx()">
+      <span class="tj-dl-icon">📝</span>
+      <div><div class="tj-dl-label">Baixar como Word (.docx)</div><div class="tj-dl-desc">Layout com cabeçalho, tabelas e formatação TJ-RO</div></div>
+    </button>
+    <button class="tj-dl-btn" id="tj-btn-md" onclick="downloadTJMd()">
+      <span class="tj-dl-icon">📄</span>
+      <div><div class="tj-dl-label">Baixar como Markdown (.md)</div><div class="tj-dl-desc">Texto estruturado no padrão TJ-RO, pronto para copiar</div></div>
+    </button>`;
+  document.getElementById('tj-modal-overlay').classList.add('open');
+}
+
+function closeTJModal() {
+  document.getElementById('tj-modal-overlay').classList.remove('open');
+}
+
+async function getTJFormatted() {
+  if (tjFormattedMd) return tjFormattedMd;
+  if (tjIsLoading) return null;
+  tjIsLoading = true;
+
+  const apiKey = getKey();
+  if (!apiKey) { showErr('Configure a chave da API antes de usar o padrão TJ-RO.'); tjIsLoading=false; return null; }
+
+  const prompt = currentMode === 'ata' ? PROMPT_TJ_ATA : PROMPT_TJ_REQ;
+  const sub = document.getElementById('tj-modal-sub');
+  sub.innerHTML = '<span class="tj-spinner"></span> Adequando ao padrão TJ-RO...';
+  document.querySelectorAll('.tj-dl-btn').forEach(b=>b.disabled=true);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:8000,
+        system: prompt,
+        messages:[{role:'user', content:'Reformate o documento abaixo no padrao TJ-RO conforme as instrucoes:\n\n'+rawMarkdown}]
+      })
+    });
+    if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||'Erro HTTP '+res.status); }
+    const data = await res.json();
+    tjFormattedMd = (data.content||[]).map(b=>b.text||'').join('');
+    sub.textContent = 'Documento formatado. Escolha o formato:';
+    document.querySelectorAll('.tj-dl-btn').forEach(b=>b.disabled=false);
+    return tjFormattedMd;
+  } catch(e) {
+    sub.textContent = 'Erro ao formatar: '+e.message;
+    document.querySelectorAll('.tj-dl-btn').forEach(b=>b.disabled=false);
+    return null;
+  } finally { tjIsLoading=false; }
+}
+
+async function downloadTJMd() {
+  const md = await getTJFormatted();
+  if (!md) return;
+  const mode  = currentMode === 'ata' ? 'Ata_Reuniao' : 'Levantamento_Requisitos';
+  const fname = 'TJ-RO_'+mode+'_'+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.md';
+  triggerDownload(new Blob([md],{type:'text/markdown'}), fname);
+}
+
+async function downloadTJDocx() {
+  const md = await getTJFormatted();
+  if (!md) return;
+  const mode  = currentMode === 'ata' ? 'Ata_Reuniao' : 'Levantamento_Requisitos';
+  const fname = 'TJ-RO_'+mode+'_'+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.docx';
+  const docXml = buildDocxFromMd(md);
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`);
+  zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
+  zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+  zip.file('word/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:rPr><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:before="240" w:after="120"/></w:pPr><w:rPr><w:b/><w:sz w:val="32"/><w:szCs w:val="32"/><w:color w:val="1F3864"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:before="200" w:after="80"/></w:pPr><w:rPr><w:b/><w:sz w:val="26"/><w:szCs w:val="26"/><w:color w:val="2E5496"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:before="160" w:after="60"/></w:pPr><w:rPr><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/><w:color w:val="2E5496"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="TableHeader"><w:name w:val="TableHeader"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="20"/><w:szCs w:val="20"/><w:color w:val="FFFFFF"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="ListBullet"><w:name w:val="List Bullet"/><w:basedOn w:val="Normal"/><w:pPr><w:ind w:left="360"/><w:spacing w:after="40"/></w:pPr><w:rPr><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:style></w:styles>`);
+  zip.file('word/document.xml', docXml);
+  const blob = await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  triggerDownload(blob, fname);
+}
+
+function buildDocxFromMd(md) {
+  const lines = md.split('\n');
+  let bodyXml = '';
+  let i = 0;
+  function xe(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function inlineRuns(text) {
+    let out = '';
+    const parts = text.split(/(\*\*[^*]+\*\*)/);
+    for (const p of parts) {
+      if (p.startsWith('**') && p.endsWith('**')) {
+        out += `<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">${xe(p.slice(2,-2))}</w:t></w:r>`;
+      } else if (p) {
+        out += `<w:r><w:t xml:space="preserve">${xe(p)}</w:t></w:r>`;
+      }
+    }
+    return out;
+  }
+  function para(text, styleId) {
+    return `<w:p><w:pPr><w:pStyle w:val="${styleId||'Normal'}"/></w:pPr>${inlineRuns(text)}</w:p>`;
+  }
+  function tableFromLines(tableLines) {
+    const rows = tableLines.filter(l => l.trim().startsWith('|') && !l.match(/^\|[-| ]+\|$/));
+    if (!rows.length) return '';
+    let txml = `<w:tbl><w:tblPr><w:tblW w:w="9360" w:type="dxa"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="CCCCCC"/><w:left w:val="single" w:sz="4" w:color="CCCCCC"/><w:bottom w:val="single" w:sz="4" w:color="CCCCCC"/><w:right w:val="single" w:sz="4" w:color="CCCCCC"/><w:insideH w:val="single" w:sz="4" w:color="CCCCCC"/><w:insideV w:val="single" w:sz="4" w:color="CCCCCC"/></w:tblBorders></w:tblPr>`;
+    rows.forEach((row, ri) => {
+      const cells = row.split('|').map(c=>c.trim()).filter((_,idx,arr)=>idx>0&&idx<arr.length-1);
+      const isHeader = ri===0;
+      txml += '<w:tr>';
+      cells.forEach(cell => {
+        const shd = isHeader ? `<w:shd w:val="clear" w:color="auto" w:fill="2E5496"/>` : '';
+        txml += `<w:tc><w:tcPr>${shd}<w:tcMar><w:top w:w="80" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:bottom w:w="80" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar></w:tcPr>`;
+        txml += `<w:p><w:pPr><w:pStyle w:val="${isHeader?'TableHeader':'Normal'}"/></w:pPr><w:r>${isHeader?'<w:rPr><w:b/></w:rPr>':''}<w:t xml:space="preserve">${xe(cell)}</w:t></w:r></w:p>`;
+        txml += `</w:tc>`;
+      });
+      txml += '</w:tr>';
+    });
+    return txml + '</w:tbl><w:p/>';
+  }
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.startsWith('# ') && !line.startsWith('## ')) { bodyXml+=para(line.slice(2).trim(),'Heading1'); i++; continue; }
+    if (line.startsWith('## ') && !line.startsWith('### ')) { bodyXml+=para(line.slice(3).trim(),'Heading2'); i++; continue; }
+    if (line.startsWith('### ')) { bodyXml+=para(line.slice(4).trim(),'Heading3'); i++; continue; }
+    if (line.trim()==='---') { bodyXml+=`<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="CCCCCC"/></w:pBdr></w:pPr></w:p>`; i++; continue; }
+    if (line.trim().startsWith('|')) {
+      const tableLines=[];
+      while (i<lines.length && lines[i].trim().startsWith('|')) { tableLines.push(lines[i]); i++; }
+      bodyXml+=tableFromLines(tableLines); continue;
+    }
+    if (line.match(/^(\s*[-*] |\s*\d+\. )/)) {
+      const text=line.replace(/^\s*[-*] /,'').replace(/^\s*\d+\. /,'').trim();
+      bodyXml+=para('• '+text,'ListBullet'); i++; continue;
+    }
+    if (line.trim().startsWith('*') && line.trim().endsWith('*') && !line.trim().startsWith('**')) {
+      const text=line.trim().replace(/^\*|\*$/g,'').trim();
+      bodyXml+=`<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:rPr><w:i/><w:sz w:val="18"/><w:color w:val="666666"/></w:rPr><w:t xml:space="preserve">${xe(text)}</w:t></w:r></w:p>`;
+      i++; continue;
+    }
+    if (!line.trim()) { bodyXml+=`<w:p/>`; i++; continue; }
+    bodyXml+=para(line.trim(),'Normal'); i++;
+  }
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:pStyle w:val="Normal"/><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="1F3864"/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>TRIBUNAL DE JUSTICA DO ESTADO DE RONDONIA</w:t></w:r></w:p><w:p><w:pPr><w:spacing w:after="200"/></w:pPr><w:r><w:rPr><w:color w:val="666666"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>Fabrica de Software IBROWSE - Documento gerado pelo Meu Analista</w:t></w:r></w:p>${bodyXml}<w:sectPr><w:pgMar w:top="1134" w:right="851" w:bottom="1134" w:left="1134"/></w:sectPr></w:body></w:document>`;
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+/* ── INIT ── */
 loadKey();
 initDropZone();
 initRevDropZone();
